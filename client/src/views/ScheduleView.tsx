@@ -46,7 +46,7 @@ export default function ScheduleView({ data }: { data: ScheduleCourse[] }) {
               <>
                 {c.req && <div className="px-5 py-2 bg-blue-950/20 border-b border-blue-900/10"><p className="text-[10px] text-blue-300/80 font-medium leading-relaxed line-clamp-3" title={c.req}><span className="font-black text-blue-500 mr-1">REQ:</span>{c.req}</p></div>}
                 <div className="p-2 space-y-2">
-                  {c.tasks.map((t, j) => (
+                  {c.tasks && c.tasks.map((t, j) => (
                     <div key={`${t.className}-${j}`} className="bg-zinc-900 rounded-2xl border border-zinc-800/60 p-3">
                       <div className="flex items-center gap-2 mb-3 px-1"><div className="w-1 h-4 bg-blue-600 rounded-full" /><h3 className="text-xs font-bold text-zinc-200">{t.className}</h3><span className="text-[10px] font-mono text-zinc-500 font-medium">{t.teacher}</span></div>
                       <div className="flex flex-col gap-2">

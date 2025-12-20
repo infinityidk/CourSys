@@ -1,13 +1,11 @@
 import re
 
-M = {
+M_SCHE = {
     "id": "id",
     "rwmc": "className",
     "kcdm": "code",
     "kcmc": "name",
     "bksrl": "capacity",
-    "xf": "credits",
-    "dgjsmc": "teacher",
     "kclbmc": "category",
     "kcxzmc": "type",
     "kkyxmc": "dept",
@@ -15,8 +13,23 @@ M = {
     "zhurwid": "parentId",
     "mxdx": "target",
     "jszws": "seats",
+}
+
+M_GRADE = {
+    "kcdm": "code",
+    "kcmc": "name",
     "zzcj": "score",
     "xscj": "grade",
+}
+
+M_TIMETABLE = {
+    "kcdm": "code",
+    "rwmc": "className",
+    "kcxzmc": "type",
+    "kclbmc": "category",
+    "kkyxmc": "dept",
+    "jfzlbmc": "grading",
+    "bksrl": "capacity",
     "bksyxrs": "enrolled",
 }
 
@@ -77,9 +90,16 @@ def parse_slots(html):
     return res
 
 
-def parse_item(d):
+def parse_grade_item(d):
     return {
-        **{v: d.get(k) for k, v in M.items() if k in d},
+        **{v: d.get(k) for k, v in M_GRADE.items() if k in d},
+        "credits": f"{float(d.get('xf', 0)):g}",
+    }
+
+
+def parse_sche_item(d):
+    return {
+        **{v: d.get(k) for k, v in M_SCHE.items() if k in d},
         "teacher": ", ".join(
             dict.fromkeys(
                 [t.strip() for t in (d.get("dgjsmc") or "").split(",") if t.strip()]
@@ -91,4 +111,17 @@ def parse_item(d):
         "req": (re.search(r"选课要求:([\s\S]*?)</p>", d.get("kcxx") or "") or [0, ""])[
             1
         ].strip(),
+    }
+
+
+def parse_timetable_item(d):
+    return {
+        **{v: d.get(k) for k, v in M_TIMETABLE.items() if k in d},
+        "teacher": ", ".join(
+            dict.fromkeys(
+                [t.strip() for t in (d.get("dgjsmc") or "").split(",") if t.strip()]
+            )
+        ),
+        "credits": f"{float(d.get('xf', 0)):g}",
+        "slots": parse_slots(d.get("pkjgmx")),
     }

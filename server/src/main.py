@@ -4,7 +4,7 @@ from httpx import AsyncClient
 from bs4 import BeautifulSoup
 import asyncio
 import datetime
-from tis import parse_item, get_semester
+from tis import parse_grade_item, parse_sche_item, parse_timetable_item, get_semester
 from models import build_hierarchy
 
 app = FastAPI()
@@ -16,7 +16,15 @@ client = AsyncClient(
     verify=False,
     headers={"User-Agent": "Mozilla/5.0"},
 )
+YEAR = datetime.datetime.now().year
+SEQ = [
+    (f"{YEAR + 1}-{YEAR + 2}", "1"),
+    (f"{YEAR}-{YEAR + 1}", "3"),
+    (f"{YEAR}-{YEAR + 1}", "2"),
+    (f"{YEAR}-{YEAR + 1}", "1"),
+]
 GRADES_CACHE = {}
+TIMETABLE_CACHE = {}
 
 
 async def fetch_page(xn, xq, page=1):
@@ -74,11 +82,32 @@ async def sync_grades():
     )
     if not (rows := (res.json().get("content") or {}).get("list")):
         return {"status": 1, "data": []}
-    data = [parse_item(r) for r in rows]
+    data = [parse_grade_item(r) for r in rows]
     parsed = [d for d in data if d.get("score") != "F"]
     GRADES_CACHE.clear()
     GRADES_CACHE.update({d["code"]: d for d in parsed})
     return {"status": 1, "data": parsed}
+
+
+@app.get("/sync/timetable")
+async def sync_timetable():
+    if "JSESSIONID" not in client.cookies:
+        raise HTTPException(401)
+    for xn, xq in SEQ:
+        res = await client.post(
+            "https://tis.sustech.edu.cn/Xsxk/queryYxkc",
+            data={
+                "p_xn": xn,
+                "p_xq": xq,
+            },
+        )
+        if not (rows := res.json().get("yxkcList")):
+            continue
+        data = [parse_timetable_item(r) for r in rows]
+        TIMETABLE_CACHE.clear()
+        TIMETABLE_CACHE.update({d["code"]: d for d in data})
+        return {"status": 1, "semester": get_semester(xn, xq), "data": data}
+    raise HTTPException(404, "NO_SEMESTER_DATA")
 
 
 @app.get("/sync/all")
@@ -87,14 +116,7 @@ async def sync_all():
         raise HTTPException(401)
     if not GRADES_CACHE:
         await sync_grades()
-    y = datetime.datetime.now().year
-    seq = [
-        (f"{y + 1}-{y + 2}", "1"),
-        (f"{y}-{y + 1}", "3"),
-        (f"{y}-{y + 1}", "2"),
-        (f"{y}-{y + 1}", "1"),
-    ]
-    for xn, xq in seq:
+    for xn, xq in SEQ:
         first = await fetch_page(xn, xq)
         if first.get("total", 0) > 10:
             meta, raw_list = first["rwList"], first["rwList"]["list"]
@@ -104,7 +126,7 @@ async def sync_all():
                 )
                 for r in rest:
                     raw_list.extend(r.get("rwList", {}).get("list", []))
-            data = build_hierarchy([parse_item(i) for i in raw_list])
+            data = build_hierarchy([parse_sche_item(i) for i in raw_list])
             for c in data:
                 if g := GRADES_CACHE.get(c["code"]):
                     c.update(
@@ -112,11 +134,9 @@ async def sync_all():
                             "status": "completed",
                             "score": g["score"],
                             "grade": g["grade"],
-                            "tasks": [],
-                            "target": "",
-                            "req": "",
                         }
                     )
+                    del c["tasks"], c["target"], c["req"], c["courseId"]
             return {
                 "status": 1,
                 "semester": get_semester(xn, xq),

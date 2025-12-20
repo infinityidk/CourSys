@@ -22,19 +22,19 @@ export interface Task {
 
 export interface ScheduleCourse {
     code: string
-    courseId: string
     name: string
     credits: string
     era: string
     dept: string
     category: string
     type: string
+    courseId?: string
     target?: string
     req?: string
+    tasks?: Task[]
     status?: string
     score?: string
     grade?: string
-    tasks: Task[]
 }
 
 export interface GradeItem {
