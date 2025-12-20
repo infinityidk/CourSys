@@ -31,8 +31,8 @@ def get_era(code, pylx):
     )
 
 
-def get_semester(s):
-    return f"{s[:4] if s[-1] == '1' else s[5:9]}-{s[-1]}"
+def get_semester(xn, xq):
+    return f"{xn.split('-')[0 if str(xq) == '1' else 1]} {'秋季' if str(xq) == '1' else '春季' if str(xq) == '2' else '夏季'}学期"
 
 
 def parse_slots(html):

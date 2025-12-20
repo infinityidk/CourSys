@@ -19,17 +19,13 @@ client = AsyncClient(
 GRADES_CACHE = {}
 
 
-async def fetch_page(xn, xq, xnxq, page=1):
+async def fetch_page(xn, xq, page=1):
     data = {
         "p_xn": xn,
         "p_xq": xq,
-        "p_xnxq": xnxq,
         "p_chaxunpylx": "3",
-        "mxpylx": "3",
-        "p_xiaoqu": "1",
         "pageNum": page,
         "pageSize": 500,
-        "p_sfhltsxx": "0",
     }
     res = await client.post(
         "https://tis.sustech.edu.cn/Xsxktz/queryRwxxcxList", data=data
@@ -92,18 +88,18 @@ async def sync_all():
         await sync_grades()
     y = datetime.datetime.now().year
     seq = [
-        (f"{y + 1}-{y + 2}", "1", f"{y + 1}-{y + 2}1"),
-        (f"{y}-{y + 1}", "3", f"{y}-{y + 1}3"),
-        (f"{y}-{y + 1}", "2", f"{y}-{y + 1}2"),
-        (f"{y}-{y + 1}", "1", f"{y}-{y + 1}1"),
+        (f"{y + 1}-{y + 2}", "1"),
+        (f"{y}-{y + 1}", "3"),
+        (f"{y}-{y + 1}", "2"),
+        (f"{y}-{y + 1}", "1"),
     ]
-    for xn, xq, xnxq in seq:
-        first = await fetch_page(xn, xq, xnxq)
+    for xn, xq in seq:
+        first = await fetch_page(xn, xq)
         if first.get("total", 0) > 10:
             meta, raw_list = first["rwList"], first["rwList"]["list"]
             if meta["pages"] > 1:
                 rest = await asyncio.gather(
-                    *(fetch_page(xn, xq, xnxq, p) for p in range(2, meta["pages"] + 1))
+                    *(fetch_page(xn, xq, p) for p in range(2, meta["pages"] + 1))
                 )
                 for r in rest:
                     raw_list.extend(r.get("rwList", {}).get("list", []))
@@ -122,7 +118,7 @@ async def sync_all():
                     )
             return {
                 "status": 1,
-                "semester": get_semester(xnxq),
+                "semester": get_semester(xn, xq),
                 "data": data,
             }
     raise HTTPException(404, "NO_SEMESTER_DATA")
