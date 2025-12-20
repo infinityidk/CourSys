@@ -123,10 +123,7 @@ def parse_timetable_item(d):
         "credits": f"{float(d.get('xf', 0)):g}",
         "slots": [
             {
-                "weeks": s["weeks"],
-                "day": s["day"],
-                "periods": s["periods"],
-                "room": s["room"],
+                **s,
                 "kind": "THEORY",
             }
             for s in parse_slots(d.get("pkjgmx"))
