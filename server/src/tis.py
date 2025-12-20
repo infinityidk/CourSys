@@ -29,8 +29,6 @@ M_TIMETABLE = {
     "kclbmc": "category",
     "kkyxmc": "dept",
     "jfzlbmc": "grading",
-    "bksrl": "capacity",
-    "bksyxrs": "enrolled",
 }
 
 

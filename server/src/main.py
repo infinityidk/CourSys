@@ -116,6 +116,8 @@ async def sync_all():
         raise HTTPException(401)
     if not GRADES_CACHE:
         await sync_grades()
+    if not TIMETABLE_CACHE:
+        await sync_timetable()
     for xn, xq in SEQ:
         first = await fetch_page(xn, xq)
         if first.get("total", 0) > 10:
@@ -136,6 +138,10 @@ async def sync_all():
                             "grade": g["grade"],
                         }
                     )
+                    del c["tasks"], c["target"], c["req"], c["courseId"]
+            for c in data:
+                if c["code"] in TIMETABLE_CACHE and "status" not in c:
+                    c.update({"status": "studying"})
                     del c["tasks"], c["target"], c["req"], c["courseId"]
             return {
                 "status": 1,
