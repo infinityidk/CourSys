@@ -1,12 +1,10 @@
 import type { GradeItem } from '../types'
-
 const COLORS: Record<string, string> = {
   "A+": "text-emerald-400", "A": "text-emerald-400", "A-": "text-emerald-500",
   "B+": "text-blue-400", "B": "text-blue-400", "B-": "text-blue-500",
   "C+": "text-yellow-400", "C": "text-yellow-400", "C-": "text-yellow-500",
   "D": "text-orange-500", "F": "text-red-500", "P": "text-white"
 }
-
 export default function GradesView({ data }: { data: GradeItem[] }) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pb-20">

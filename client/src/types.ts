@@ -5,21 +5,18 @@ export interface Slot {
     room: string
     kind: string
 }
-
 export interface Option {
     name: string
-    teacher: string
+    teacher?: string
     capacity: string
     seats: string
     slots: Slot[]
 }
-
 export interface Task {
     className: string
     teacher: string
     options: Option[]
 }
-
 export interface ScheduleCourse {
     code: string
     name: string
@@ -36,7 +33,6 @@ export interface ScheduleCourse {
     score?: string
     grade?: string
 }
-
 export interface GradeItem {
     code: string
     name: string
@@ -44,7 +40,6 @@ export interface GradeItem {
     score: string
     grade: string
 }
-
 export interface TimetableCourse {
     code: string
     className: string

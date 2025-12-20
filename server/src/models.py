@@ -51,7 +51,6 @@ def build_hierarchy(data):
             options.append(
                 {
                     "name": "STD",
-                    "teacher": p["teacher"],
                     "capacity": p["capacity"],
                     "seats": p["seats"],
                     "slots": theory_slots,
