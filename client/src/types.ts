@@ -27,7 +27,7 @@ export interface ScheduleCourse {
     era: string
     dept: string
     category: string
-    type: string
+    type?: string
     courseId?: string
     target?: string
     req?: string
@@ -43,4 +43,16 @@ export interface GradeItem {
     credits: string
     score: string
     grade: string
+}
+
+export interface TimetableCourse {
+    code: string
+    className: string
+    type: string
+    category: string
+    dept: string
+    grading: string
+    teacher: string
+    credits: string
+    slots: Slot[]
 }

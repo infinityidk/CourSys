@@ -138,11 +138,11 @@ async def sync_all():
                             "grade": g["grade"],
                         }
                     )
-                    del c["tasks"], c["target"], c["req"], c["courseId"]
+                    del c["tasks"], c["target"], c["req"], c["courseId"], c["type"]
             for c in data:
                 if c["code"] in TIMETABLE_CACHE and "status" not in c:
                     c.update({"status": "studying"})
-                    del c["tasks"], c["target"], c["req"], c["courseId"]
+                    del c["tasks"], c["target"], c["req"], c["courseId"], c["type"]
             return {
                 "status": 1,
                 "semester": get_semester(xn, xq),
