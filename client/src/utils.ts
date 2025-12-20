@@ -22,9 +22,17 @@ export function formatSemester(code: string) {
 
 export function formatWeeks(weeks: number[]) {
     if (!weeks.length) return ""
+    let flag = true
+    for (let i = 1; i < weeks.length; i++) {
+        if (weeks[i] != weeks[i - 1] + 2) {
+            flag = false
+            break
+        }
+    }
+    if (flag)
+        return weeks[0] == 1 ? "单周" : "双周"
     const ranges = []
     let start = weeks[0], end = weeks[0]
-
     for (let i = 1; i < weeks.length; i++) {
         if (weeks[i] === end + 1) {
             end = weeks[i]
