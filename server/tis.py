@@ -13,11 +13,11 @@ M = {
     "kkyxmc": "dept",
     "kcid": "courseId",
     "zhurwid": "parentId",
-    "skyymc": "lang",
     "mxdx": "target",
     "jszws": "seats",
     "zzcj": "score",
     "xscj": "grade",
+    "bksyxrs": "enrolled",
 }
 
 
@@ -32,7 +32,7 @@ def get_era(code, pylx):
 
 
 def get_semester(xn, xq):
-    return f"{xn.split('-')[0 if str(xq) == '1' else 1]} {'秋季' if str(xq) == '1' else '春季' if str(xq) == '2' else '夏季'}学期"
+    return f"{xn.split('-')[0] if str(xq) == '1' else xn.split('-')[1]}-{xq}"
 
 
 def parse_slots(html):

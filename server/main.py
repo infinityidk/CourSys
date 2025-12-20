@@ -74,7 +74,8 @@ async def sync_grades():
     )
     if not (rows := (res.json().get("content") or {}).get("list")):
         return {"status": 1, "data": []}
-    parsed = [parse_item(r) for r in rows]
+    data = [parse_item(r) for r in rows]
+    parsed = [d for d in data if d.get("score") != "F"]
     GRADES_CACHE.clear()
     GRADES_CACHE.update({d["code"]: d for d in parsed})
     return {"status": 1, "data": parsed}

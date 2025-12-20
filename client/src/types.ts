@@ -17,7 +17,6 @@ export interface Option {
 export interface Task {
     className: string
     teacher: string
-    lang: string
     options: Option[]
 }
 
@@ -44,5 +43,4 @@ export interface GradeItem {
     credits: string
     score: string
     grade: string
-    era: string
 }

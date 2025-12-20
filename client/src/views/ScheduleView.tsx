@@ -2,11 +2,11 @@ import { formatSlot, formatEra, translateKind, translateOption } from '../utils'
 import type { ScheduleCourse } from '../types'
 
 const COLORS: Record<string, string> = {
-  "1": "text-emerald-400 border-emerald-900 bg-emerald-950/50",
-  "2": "text-cyan-400 border-cyan-900 bg-cyan-950/50",
-  "3": "text-violet-400 border-violet-900 bg-violet-950/50",
-  "4": "text-rose-400 border-rose-900 bg-rose-950/50",
-  "G": "text-amber-400 border-amber-900 bg-amber-950/50",
+  "1": "text-emerald-400 border-emerald-900 bg-emerald-950/30",
+  "2": "text-cyan-400 border-cyan-900 bg-cyan-950/30",
+  "3": "text-violet-400 border-violet-900 bg-violet-950/30",
+  "4": "text-rose-400 border-rose-900 bg-rose-950/30",
+  "G": "text-amber-400 border-amber-900 bg-amber-950/30",
   "O": "text-zinc-400 border-zinc-700 bg-zinc-900"
 }
 
@@ -16,25 +16,30 @@ export default function ScheduleView({ data }: { data: ScheduleCourse[] }) {
       {data.map((c, i) => {
         const done = c.status === 'completed'
         return (
-          <div key={`${c.code}-${i}`} className={`break-inside-avoid border-2 rounded-3xl overflow-hidden shadow-2xl ${done ? "bg-amber-950/20 border-amber-600/50" : "bg-zinc-950 border-zinc-900"}`}>
-            <div className={`p-5 flex flex-col gap-3 ${done ? "bg-amber-900/10" : "bg-zinc-900/50 border-b border-zinc-900"}`}>
+          <div key={`${c.code}-${i}`} className={`break-inside-avoid border-2 rounded-3xl overflow-hidden shadow-2xl transition-all ${done ? "bg-zinc-950 border-amber-600/40 shadow-amber-900/10" : "bg-zinc-950 border-zinc-900"}`}>
+            <div className={`p-5 flex flex-col gap-3 ${done ? "bg-amber-900/5 border-b border-amber-900/20" : "bg-zinc-900/50 border-b border-zinc-900"}`}>
               <div className="flex justify-between items-start">
                 <div className="space-y-1.5">
-                  <div className="flex flex-wrap gap-2">
-                    {done ? <span className="px-2 py-0.5 bg-amber-600 text-black text-[10px] font-black rounded uppercase tracking-wider">已修读</span> :
-                      <><span className={`px-2 py-0.5 text-[10px] font-black border rounded uppercase tracking-wider ${COLORS[c.era] || COLORS["O"]}`}>{formatEra(c.era)}</span><span className="px-2 py-0.5 bg-zinc-800 text-zinc-400 text-[10px] font-bold rounded uppercase tracking-wider">{c.category}</span></>}
-                    <span className="px-2 py-0.5 bg-blue-900/30 text-blue-400 text-[10px] font-bold rounded uppercase tracking-wider">{c.type}</span>
+                  <div className="flex flex-wrap gap-2 items-center">
+                    <span className={`px-2 py-0.5 text-[10px] font-black border rounded uppercase tracking-wider ${COLORS[c.era] || COLORS["O"]}`}>{formatEra(c.era)}</span>
+                    <span className="px-2 py-0.5 bg-zinc-800 text-zinc-400 text-[10px] font-bold rounded uppercase tracking-wider">{c.category}</span>
+                    {done ? <span className="px-2 py-0.5 bg-amber-500 text-black text-[10px] font-black rounded uppercase tracking-wider">已修读</span> :
+                      <span className="px-2 py-0.5 bg-blue-900/30 text-blue-400 text-[10px] font-bold rounded uppercase tracking-wider">{c.type}</span>}
                   </div>
                   <h2 className={`text-xl font-black leading-tight tracking-tight ${done ? "text-amber-100" : "text-white"}`}>{c.name}</h2>
                 </div>
-                <div className="text-right shrink-0">
+                <div className="text-right shrink-0 flex flex-col items-end">
                   <div className={`text-4xl font-black italic leading-none ${done ? "text-amber-500" : "text-white"}`}>{done ? c.grade : c.credits}</div>
-                  <div className="text-[9px] text-zinc-600 font-black uppercase tracking-widest mt-1">{done ? `得分: ${c.score}` : "学分"}</div>
+                  <div className="text-[9px] text-zinc-500 font-bold uppercase tracking-widest mt-1">
+                    {done ? <span className="text-amber-200/60">{c.score} | {c.credits} 学分</span> : "学分"}
+                  </div>
                 </div>
               </div>
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] font-bold uppercase tracking-wide">
-                <span className="text-blue-600 font-mono">{c.code}</span><span className="text-zinc-600">/</span><span className="text-zinc-500">{c.dept}</span>
-                {c.target && <span className="ml-auto text-amber-500 border border-amber-900/50 bg-amber-950/30 px-1.5 rounded">{c.target}</span>}
+                <span className={done ? "text-amber-700/70 font-mono" : "text-blue-600 font-mono"}>{c.code}</span>
+                <span className="text-zinc-700">/</span>
+                <span className="text-zinc-500">{c.dept}</span>
+                {!done && c.target && <span className="ml-auto text-amber-500 border border-amber-900/50 bg-amber-950/30 px-1.5 rounded">{c.target}</span>}
               </div>
             </div>
             {!done && (
@@ -43,7 +48,7 @@ export default function ScheduleView({ data }: { data: ScheduleCourse[] }) {
                 <div className="p-2 space-y-2">
                   {c.tasks.map((t, j) => (
                     <div key={`${t.className}-${j}`} className="bg-zinc-900 rounded-2xl border border-zinc-800/60 p-3">
-                      <div className="flex items-center gap-2 mb-3 px-1"><div className="w-1 h-4 bg-blue-600 rounded-full" /><h3 className="text-xs font-bold text-zinc-200">{t.className}</h3><span className="text-[10px] font-mono text-zinc-500 font-medium">{t.teacher} {t.lang && `(${t.lang})`}</span></div>
+                      <div className="flex items-center gap-2 mb-3 px-1"><div className="w-1 h-4 bg-blue-600 rounded-full" /><h3 className="text-xs font-bold text-zinc-200">{t.className}</h3><span className="text-[10px] font-mono text-zinc-500 font-medium">{t.teacher}</span></div>
                       <div className="flex flex-col gap-2">
                         {t.options.map((opt, k) => (
                           <button key={`${opt.name}-${k}`} className="group flex flex-col bg-black/40 border border-zinc-800/50 hover:bg-zinc-800 hover:border-blue-500/30 rounded-xl p-3 transition-all text-left">

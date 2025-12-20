@@ -61,7 +61,6 @@ def build_hierarchy(data):
             {
                 "className": p["className"],
                 "teacher": p["teacher"],
-                "lang": p["lang"],
                 "options": options,
             }
         )
