@@ -1,0 +1,75 @@
+import { formatSlot, formatEra, translateKind, translateOption } from '../utils'
+import type { ScheduleCourse } from '../types'
+
+const COLORS: Record<string, string> = {
+  "1": "text-emerald-400 border-emerald-900 bg-emerald-950/50",
+  "2": "text-cyan-400 border-cyan-900 bg-cyan-950/50",
+  "3": "text-violet-400 border-violet-900 bg-violet-950/50",
+  "4": "text-rose-400 border-rose-900 bg-rose-950/50",
+  "G": "text-amber-400 border-amber-900 bg-amber-950/50",
+  "O": "text-zinc-400 border-zinc-700 bg-zinc-900"
+}
+
+export default function ScheduleView({ data }: { data: ScheduleCourse[] }) {
+  return (
+    <div className="columns-1 md:columns-2 xl:columns-3 gap-6 space-y-6 pb-20">
+      {data.map((c, i) => {
+        const done = c.status === 'completed'
+        return (
+          <div key={`${c.code}-${i}`} className={`break-inside-avoid border-2 rounded-3xl overflow-hidden shadow-2xl ${done ? "bg-amber-950/20 border-amber-600/50" : "bg-zinc-950 border-zinc-900"}`}>
+            <div className={`p-5 flex flex-col gap-3 ${done ? "bg-amber-900/10" : "bg-zinc-900/50 border-b border-zinc-900"}`}>
+              <div className="flex justify-between items-start">
+                <div className="space-y-1.5">
+                  <div className="flex flex-wrap gap-2">
+                    {done ? <span className="px-2 py-0.5 bg-amber-600 text-black text-[10px] font-black rounded uppercase tracking-wider">已修读</span> :
+                      <><span className={`px-2 py-0.5 text-[10px] font-black border rounded uppercase tracking-wider ${COLORS[c.era] || COLORS["O"]}`}>{formatEra(c.era)}</span><span className="px-2 py-0.5 bg-zinc-800 text-zinc-400 text-[10px] font-bold rounded uppercase tracking-wider">{c.category}</span></>}
+                    <span className="px-2 py-0.5 bg-blue-900/30 text-blue-400 text-[10px] font-bold rounded uppercase tracking-wider">{c.type}</span>
+                  </div>
+                  <h2 className={`text-xl font-black leading-tight tracking-tight ${done ? "text-amber-100" : "text-white"}`}>{c.name}</h2>
+                </div>
+                <div className="text-right shrink-0">
+                  <div className={`text-4xl font-black italic leading-none ${done ? "text-amber-500" : "text-white"}`}>{done ? c.grade : c.credits}</div>
+                  <div className="text-[9px] text-zinc-600 font-black uppercase tracking-widest mt-1">{done ? `得分: ${c.score}` : "学分"}</div>
+                </div>
+              </div>
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] font-bold uppercase tracking-wide">
+                <span className="text-blue-600 font-mono">{c.code}</span><span className="text-zinc-600">/</span><span className="text-zinc-500">{c.dept}</span>
+                {c.target && <span className="ml-auto text-amber-500 border border-amber-900/50 bg-amber-950/30 px-1.5 rounded">{c.target}</span>}
+              </div>
+            </div>
+            {!done && (
+              <>
+                {c.req && <div className="px-5 py-2 bg-blue-950/20 border-b border-blue-900/10"><p className="text-[10px] text-blue-300/80 font-medium leading-relaxed line-clamp-3" title={c.req}><span className="font-black text-blue-500 mr-1">REQ:</span>{c.req}</p></div>}
+                <div className="p-2 space-y-2">
+                  {c.tasks.map((t, j) => (
+                    <div key={`${t.className}-${j}`} className="bg-zinc-900 rounded-2xl border border-zinc-800/60 p-3">
+                      <div className="flex items-center gap-2 mb-3 px-1"><div className="w-1 h-4 bg-blue-600 rounded-full" /><h3 className="text-xs font-bold text-zinc-200">{t.className}</h3><span className="text-[10px] font-mono text-zinc-500 font-medium">{t.teacher} {t.lang && `(${t.lang})`}</span></div>
+                      <div className="flex flex-col gap-2">
+                        {t.options.map((opt, k) => (
+                          <button key={`${opt.name}-${k}`} className="group flex flex-col bg-black/40 border border-zinc-800/50 hover:bg-zinc-800 hover:border-blue-500/30 rounded-xl p-3 transition-all text-left">
+                            <div className="flex justify-between items-center mb-2 pb-2 border-b border-zinc-800/50">
+                              <span className="text-xs font-bold text-zinc-300 group-hover:text-blue-400 transition-colors">{translateOption(opt.name)}</span>
+                              <div className="flex gap-2 text-[9px] font-mono text-zinc-600"><span className={Number(opt.capacity) <= 0 ? "text-red-500" : ""}>容:{opt.capacity}</span><span className="text-zinc-700">|</span><span>座:{opt.seats}</span></div>
+                            </div>
+                            <div className="space-y-1.5 w-full">
+                              {opt.slots.map((s, l) => (
+                                <div key={l} className="flex gap-2 items-start text-[10px] leading-snug">
+                                  <span className={`px-1.5 py-px rounded-[3px] text-[9px] font-black shrink-0 ${s.kind === 'LAB' ? 'bg-amber-950 text-amber-500 border border-amber-900/30' : 'bg-zinc-800 text-zinc-400 border border-zinc-700'}`}>{translateKind(s.kind)}</span>
+                                  <span className={`font-medium ${s.kind === 'LAB' ? 'text-amber-100/80' : 'text-zinc-400'} group-hover:text-zinc-200 transition-colors`}>{formatSlot(s)}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
