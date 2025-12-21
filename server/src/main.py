@@ -9,7 +9,7 @@ from tis import (
     parse_sche_item,
     parse_timetable_item,
     get_semester,
-    parse_prerequisites,
+    fetch_prereq_logic,
 )
 from models import build_hierarchy
 
@@ -53,20 +53,9 @@ async def fetch_prereq(courseId):
     if courseId in PREREQ_CACHE:
         return PREREQ_CACHE[courseId]
     async with PREREQ_SEM:
-        try:
-            return PREREQ_CACHE.setdefault(
-                courseId,
-                parse_prerequisites(
-                    (
-                        await client.post(
-                            "https://tis.sustech.edu.cn/kck/xxxxkzkc/queryXxkc",
-                            json={"kcid": courseId},
-                        )
-                    ).json()
-                ),
-            )
-        except Exception:
-            return []
+        return PREREQ_CACHE.setdefault(
+            courseId, await fetch_prereq_logic(client, courseId)
+        )
 
 
 @app.post("/login")
@@ -183,14 +172,17 @@ async def sync_all():
                 for c in targets:
                     if not (groups := reqs.get(c["courseId"])):
                         continue
+                    p_map = {}
                     for g in groups:
                         if not {x["code"] for x in g}.isdisjoint(GRADES_CACHE):
                             continue
                         (
-                            c.setdefault("pending", []).extend(t)
+                            p_map.update({x["code"]: x for x in t})
                             if (t := [x for x in g if x["code"] in TIMETABLE_CACHE])
                             else c.setdefault("missing", []).append(g)
                         )
+                    if p_map:
+                        c["pending"] = list(p_map.values())
             return {
                 "status": 1,
                 "semester": get_semester(xn, xq),

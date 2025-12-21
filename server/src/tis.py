@@ -1,4 +1,6 @@
 import re
+import asyncio
+from itertools import product
 
 M_SCHE = {
     "id": "id",
@@ -30,6 +32,8 @@ M_TIMETABLE = {
     "kkyxmc": "dept",
     "jfzlbmc": "grading",
 }
+
+LOGIC_CACHE = {}
 
 
 def get_era(code, pylx):
@@ -88,22 +92,78 @@ def parse_slots(html):
     return res
 
 
-def parse_prerequisites(data: dict) -> list[list[dict]]:
-    if not data or not (raw := data.get("list")):
-        return []
-    groups = {}
-    [
-        groups.setdefault(i["kzdm"], {}).update(
-            {i["kcdm"]: {"code": i["kcdm"], "name": i["kcmc"]}}
+async def fetch_prereq_logic(client, courseId):
+    async def resolve_leaf(groupCode):
+        if groupCode in LOGIC_CACHE:
+            return LOGIC_CACHE[groupCode]
+        try:
+            raw = (
+                (
+                    await client.post(
+                        "https://tis.sustech.edu.cn/kck/xxxxkzkc/queryXxkc",
+                        json={"kcid": courseId},
+                    )
+                )
+                .json()
+                .get("list", [])
+            )
+            leaves = {}
+            [
+                leaves.setdefault(i["kzdm"], {}).update(
+                    {i["kcdm"]: {"code": i["kcdm"], "name": i["kcmc"]}}
+                )
+                for i in raw
+                if i.get("kzdm")
+            ]
+            LOGIC_CACHE.update({k: [list(v.values())] for k, v in leaves.items()})
+            return LOGIC_CACHE.get(groupCode, [])
+        except Exception:
+            return []
+
+    async def build(groupCode, cnt):
+        if groupCode and groupCode in LOGIC_CACHE:
+            return LOGIC_CACHE[groupCode]
+        try:
+            nodes = (
+                (
+                    await client.post(
+                        "https://tis.sustech.edu.cn/kck/xxxxkzkc/queryKzxx",
+                        data={"kzdm": groupCode}
+                        if groupCode
+                        else {"kzdm": "", "kcid": courseId, "kzlx": "1"},
+                    )
+                )
+                .json()
+                .get("kzList1", [])
+            )
+            print("courseId", courseId, "nodes", nodes)
+        except Exception:
+            return []
+        if not nodes or not (
+            cnfs := [
+                c
+                for c in await asyncio.gather(
+                    *(
+                        resolve_leaf(n["kzdm"])
+                        if n.get("kznkcmc")
+                        else build(n["kzdm"], int(n.get("yqzkzs") or 0))
+                        for n in nodes
+                    )
+                )
+                if c
+            ]
+        ):
+            return []
+        res = (
+            [sum(p, []) for p in product(*cnfs)]
+            if cnt < len(nodes)
+            else [x for c in cnfs for x in c]
         )
-        for i in raw
-    ]
-    seen, unique = set(), []
-    for opts in groups.values():
-        if (h := frozenset(opts.keys())) not in seen:
-            seen.add(h)
-            unique.append(list(opts.values()))
-    return unique
+        if groupCode:
+            LOGIC_CACHE[groupCode] = res
+        return res
+
+    return await build("", 999)
 
 
 def parse_grade_item(d):
