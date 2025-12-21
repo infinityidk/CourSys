@@ -136,7 +136,6 @@ async def fetch_prereq_logic(client, courseId):
                 .json()
                 .get("kzList1", [])
             )
-            print("courseId", courseId, "nodes", nodes)
         except Exception:
             return []
         if not nodes or not (
