@@ -52,9 +52,10 @@ export default function ScheduleView({ data }: { data: ScheduleCourse[] }) {
         {filteredData.map((c, i) => {
           const done = c.status === 'completed'
           const studying = c.status === 'studying'
+          const isMissing = !!c.missing?.length
           return (
-            <div key={`${c.code}-${i}`} className={`break-inside-avoid border-2 rounded-3xl overflow-hidden shadow-2xl transition-all ${done ? "bg-zinc-950 border-amber-600/40 shadow-amber-900/10" : studying ? "bg-zinc-950 border-blue-600/40 shadow-blue-900/10" : "bg-zinc-950 border-zinc-900"}`}>
-              <div className={`p-5 flex flex-col gap-3 ${done ? "bg-amber-900/5 border-b border-amber-900/20" : studying ? "bg-blue-900/5 border-b border-blue-900/20" : "bg-zinc-900/50 border-b border-zinc-900"}`}>
+            <div key={`${c.code}-${i}`} className={`break-inside-avoid border-2 rounded-3xl overflow-hidden shadow-2xl transition-all ${done ? "bg-zinc-950 border-amber-600/40 shadow-amber-900/10" : studying ? "bg-zinc-950 border-blue-600/40 shadow-blue-900/10" : isMissing ? "bg-red-950/20 border-red-600/40 shadow-red-900/10" : "bg-zinc-950 border-zinc-900"}`}>
+              <div className={`p-5 flex flex-col gap-3 ${done ? "bg-amber-900/5 border-b border-amber-900/20" : studying ? "bg-blue-900/5 border-b border-blue-900/20" : isMissing ? "bg-red-900/10 border-b border-red-900/20" : "bg-zinc-900/50 border-b border-zinc-900"}`}>
                 <div className="flex justify-between items-start">
                   <div className="space-y-1.5">
                     <div className="flex flex-wrap gap-2 items-center">
@@ -78,13 +79,41 @@ export default function ScheduleView({ data }: { data: ScheduleCourse[] }) {
                   <span className="text-zinc-500">{c.dept}</span>
                   {!done && !studying && c.target && <span className="ml-auto text-amber-500 border border-amber-900/50 bg-amber-950/30 px-1.5 rounded">{c.target}</span>}
                 </div>
+                {(c.missing?.length || c.pending?.length) && (
+                  <div className={`mt-2 pt-3 border-t border-dashed space-y-3 ${isMissing ? 'border-red-500/20' : 'border-zinc-700/30'}`}>
+                    {!!c.missing?.length && (
+                      <div className="space-y-1.5">
+                        <div className="text-[10px] font-black text-red-400 uppercase tracking-wider flex items-center gap-1">
+                          <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+                          未修读
+                        </div>
+                        <div className="flex flex-col gap-1.5 pl-1">
+                          {c.missing.map((group, idx) => (
+                            <div key={idx} className="text-[10px] text-red-300/80 font-mono leading-tight flex items-start">
+                              <span className="mr-2 text-red-500/40 select-none">•</span>
+                              <span>
+                                {group.map(item => `${item.code} ${item.name}`).join(' | ')}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {!!c.pending?.length && (
+                      <div className="text-[10px] text-emerald-500 font-medium">
+                        <span className="font-black mr-1">修读中：</span>
+                        {c.pending.map((item) => `${item.code} ${item.name}`).join(" & ")}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
               {!done && !studying && (
                 <>
                   {c.req && <div className="px-5 py-2 bg-blue-950/20 border-b border-blue-900/10"><p className="text-[10px] text-blue-300/80 font-medium leading-relaxed line-clamp-3" title={c.req}><span className="font-black text-blue-500 mr-1">REQ:</span>{c.req}</p></div>}
                   <div className="p-2 space-y-2">
                     {c.tasks && c.tasks.map((t, j) => (
-                      <div key={`${t.className}-${j}`} className="bg-zinc-900 rounded-2xl border border-zinc-800/60 p-3">
+                      <div key={`${t.className}-${j}`} className={`rounded-2xl border p-3 ${isMissing ? "bg-red-950/10 border-red-500/20" : "bg-zinc-900 border-zinc-800/60"}`}>
                         <div className="flex items-center gap-2 mb-3 px-1"><div className="w-1 h-4 bg-blue-600 rounded-full" /><h3 className="text-xs font-bold text-zinc-200">{t.className}</h3><span className="text-[10px] text-zinc-500">{t.teacher}</span></div>
                         <div className="flex flex-col gap-2">
                           {t.options.map((opt, k) => (

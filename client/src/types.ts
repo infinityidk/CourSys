@@ -32,6 +32,8 @@ export interface ScheduleCourse {
     status?: string
     score?: string
     grade?: string
+    pending?: { code: string; name: string }[]
+    missing?: { code: string; name: string }[][]
 }
 export interface GradeItem {
     code: string
