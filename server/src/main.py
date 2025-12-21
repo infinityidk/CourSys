@@ -4,7 +4,13 @@ from httpx import AsyncClient
 from bs4 import BeautifulSoup
 import asyncio
 import datetime
-from tis import parse_grade_item, parse_sche_item, parse_timetable_item, get_semester
+from tis import (
+    parse_grade_item,
+    parse_sche_item,
+    parse_timetable_item,
+    get_semester,
+    parse_prerequisites,
+)
 from models import build_hierarchy
 
 app = FastAPI()
@@ -25,6 +31,8 @@ SEQ = [
 ]
 GRADES_CACHE = {}
 TIMETABLE_CACHE = {}
+PREREQ_CACHE = {}
+PREREQ_SEM = asyncio.Semaphore(12)
 
 
 async def fetch_page(xn, xq, page=1):
@@ -39,6 +47,26 @@ async def fetch_page(xn, xq, page=1):
         "https://tis.sustech.edu.cn/Xsxktz/queryRwxxcxList", data=data
     )
     return res.json() if res.status_code == 200 else {}
+
+
+async def fetch_prereq(courseId):
+    if courseId in PREREQ_CACHE:
+        return PREREQ_CACHE[courseId]
+    async with PREREQ_SEM:
+        try:
+            return PREREQ_CACHE.setdefault(
+                courseId,
+                parse_prerequisites(
+                    (
+                        await client.post(
+                            "https://tis.sustech.edu.cn/kck/xxxxkzkc/queryXxkc",
+                            json={"kcid": courseId},
+                        )
+                    ).json()
+                ),
+            )
+        except Exception:
+            return []
 
 
 @app.post("/login")
@@ -143,6 +171,26 @@ async def sync_all():
                 if c["code"] in TIMETABLE_CACHE and "status" not in c:
                     c.update({"status": "studying"})
                     del c["tasks"], c["target"], c["req"], c["courseId"], c["type"]
+            if targets := [c for c in data if c.get("courseId")]:
+                reqs = dict(
+                    zip(
+                        [c["courseId"] for c in targets],
+                        await asyncio.gather(
+                            *(fetch_prereq(c["courseId"]) for c in targets)
+                        ),
+                    )
+                )
+                for c in targets:
+                    if not (groups := reqs.get(c["courseId"])):
+                        continue
+                    for g in groups:
+                        if not {x["code"] for x in g}.isdisjoint(GRADES_CACHE):
+                            continue
+                        (
+                            c.setdefault("pending", []).extend(t)
+                            if (t := [x for x in g if x["code"] in TIMETABLE_CACHE])
+                            else c.setdefault("missing", []).append(g)
+                        )
             return {
                 "status": 1,
                 "semester": get_semester(xn, xq),

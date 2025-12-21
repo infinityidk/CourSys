@@ -88,6 +88,24 @@ def parse_slots(html):
     return res
 
 
+def parse_prerequisites(data: dict) -> list[list[dict]]:
+    if not data or not (raw := data.get("list")):
+        return []
+    groups = {}
+    [
+        groups.setdefault(i["kzdm"], {}).update(
+            {i["kcdm"]: {"code": i["kcdm"], "name": i["kcmc"]}}
+        )
+        for i in raw
+    ]
+    seen, unique = set(), []
+    for opts in groups.values():
+        if (h := frozenset(opts.keys())) not in seen:
+            seen.add(h)
+            unique.append(list(opts.values()))
+    return unique
+
+
 def parse_grade_item(d):
     return {
         **{v: d.get(k) for k, v in M_GRADE.items() if k in d},
