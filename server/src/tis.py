@@ -22,6 +22,7 @@ M_GRADE = {
     "kcmc": "name",
     "zzcj": "score",
     "xscj": "grade",
+    "xnxq": "semester",
 }
 
 M_TIMETABLE = {
@@ -44,10 +45,6 @@ def get_era(code, pylx):
     return (
         n[0][0] if (n := re.findall(r"\d+", code or "")) and n[0][0] in "1234" else "O"
     )
-
-
-def get_semester(xn, xq):
-    return f"{xn.split('-')[0] if str(xq) == '1' else xn.split('-')[1]}-{xq}"
 
 
 def parse_slots(html):

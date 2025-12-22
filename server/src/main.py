@@ -8,7 +8,6 @@ from tis import (
     parse_grade_item,
     parse_sche_item,
     parse_timetable_item,
-    get_semester,
     fetch_prereq_logic,
 )
 from models import build_hierarchy
@@ -31,6 +30,7 @@ SEQ = [
 ]
 GRADES_CACHE = {}
 TIMETABLE_CACHE = {}
+TIMETABLE_SEM = None
 PREREQ_CACHE = {}
 PREREQ_SEM = asyncio.Semaphore(12)
 
@@ -100,14 +100,14 @@ async def sync_grades():
     if not (rows := (res.json().get("content") or {}).get("list")):
         return {"status": 1, "data": []}
     data = [parse_grade_item(r) for r in rows]
-    parsed = [d for d in data if d.get("score") != "F"]
     GRADES_CACHE.clear()
-    GRADES_CACHE.update({d["code"]: d for d in parsed})
-    return {"status": 1, "data": parsed}
+    GRADES_CACHE.update({d["code"]: d for d in data})
+    return {"status": 1, "data": data}
 
 
 @app.get("/sync/timetable")
 async def sync_timetable():
+    global TIMETABLE_SEM
     if "JSESSIONID" not in client.cookies:
         raise HTTPException(401)
     for xn, xq in SEQ:
@@ -120,10 +120,11 @@ async def sync_timetable():
         )
         if not (rows := res.json().get("yxkcList")):
             continue
+        TIMETABLE_SEM = xn + xq
         data = [parse_timetable_item(r) for r in rows]
         TIMETABLE_CACHE.clear()
         TIMETABLE_CACHE.update({d["code"]: d for d in data})
-        return {"status": 1, "semester": get_semester(xn, xq), "data": data}
+        return {"status": 1, "semester": TIMETABLE_SEM, "data": data}
     raise HTTPException(404, "NO_SEMESTER_DATA")
 
 
@@ -147,19 +148,25 @@ async def sync_all():
                     raw_list.extend(r.get("rwList", {}).get("list", []))
             data = build_hierarchy([parse_sche_item(i) for i in raw_list])
             for c in data:
-                if g := GRADES_CACHE.get(c["code"]):
+                if (g := GRADES_CACHE.get(c["code"])) and g["score"] != "F":
                     c.update(
                         {
                             "status": "completed",
                             "score": g["score"],
                             "grade": g["grade"],
+                            "semester": g["semester"],
                         }
                     )
                     del c["tasks"], c["target"], c["req"], c["courseId"], c["type"]
-            for c in data:
-                if c["code"] in TIMETABLE_CACHE and "status" not in c:
-                    c.update({"status": "studying"})
-                    del c["tasks"], c["target"], c["req"], c["courseId"], c["type"]
+            if TIMETABLE_SEM != xn + xq:
+                for c in data:
+                    if c["code"] in TIMETABLE_CACHE and "status" not in c:
+                        if (g := GRADES_CACHE.get(c["code"])) and g[
+                            "semester"
+                        ] == TIMETABLE_SEM:
+                            continue
+                        c.update({"status": "studying"})
+                        del c["tasks"], c["target"], c["req"], c["courseId"], c["type"]
             if targets := [c for c in data if c.get("courseId")]:
                 reqs = dict(
                     zip(
@@ -185,7 +192,7 @@ async def sync_all():
                         c["pending"] = list(p_map.values())
             return {
                 "status": 1,
-                "semester": get_semester(xn, xq),
+                "semester": xn + xq,
                 "data": data,
             }
     raise HTTPException(404, "NO_SEMESTER_DATA")
