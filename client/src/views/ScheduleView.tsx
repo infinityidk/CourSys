@@ -1,4 +1,4 @@
-import { formatSlot, formatEra, translateKind, translateOption } from '../utils'
+import { formatSlot, formatEra, translateKind, translateOption, formatSemester } from '../utils'
 import type { ScheduleCourse, Task } from '../types'
 import { useState, useMemo } from 'react'
 const COLORS: Record<string, string> = {
@@ -69,7 +69,14 @@ export default function ScheduleView({ data }: { data: ScheduleCourse[] }) {
                   <div className="text-right shrink-0 flex flex-col items-end">
                     <div className={`text-4xl font-black italic leading-none ${done ? "text-amber-500" : studying ? "text-blue-500" : "text-white"}`}>{done ? c.grade : c.credits}</div>
                     <div className="text-[9px] text-zinc-500 font-bold uppercase tracking-widest mt-1">
-                      {done ? <span className="text-amber-200/60">{c.score} | {c.credits} 学分</span> : "学分"}
+                      {done ? (
+                        <>
+                          <span className="text-amber-200/60">{c.score} | {c.credits} 学分</span>
+                          <div className="text-[8px] text-amber-700/70 mt-0.5 font-mono">
+                            {c.semester && formatSemester(c.semester)}
+                          </div>
+                        </>
+                      ) : "学分"}
                     </div>
                   </div>
                 </div>

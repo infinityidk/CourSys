@@ -1,9 +1,11 @@
 import type { GradeItem } from '../types'
+import { formatSemester } from '../utils'
 const COLORS: Record<string, string> = {
-  "A+": "text-emerald-400", "A": "text-emerald-400", "A-": "text-emerald-500",
-  "B+": "text-blue-400", "B": "text-blue-400", "B-": "text-blue-500",
-  "C+": "text-yellow-400", "C": "text-yellow-400", "C-": "text-yellow-500",
-  "D": "text-orange-500", "F": "text-red-500", "P": "text-white"
+  "A+": "text-emerald-500", "A": "text-emerald-400", "A-": "text-emerald-300",
+  "B+": "text-blue-500", "B": "text-blue-400", "B-": "text-blue-300",
+  "C+": "text-amber-500", "C": "text-amber-400", "C-": "text-amber-300",
+  "D+": "text-orange-500", "D": "text-orange-400", "D-": "text-orange-300",
+  "F": "text-red-500", "P": "text-zinc-400"
 }
 export default function GradesView({ data }: { data: GradeItem[] }) {
   return (
@@ -11,9 +13,12 @@ export default function GradesView({ data }: { data: GradeItem[] }) {
       {data.map((d, i) => (
         <div key={`${d.code}-${i}`} className="bg-zinc-950 border-2 border-zinc-900 rounded-3xl p-6 flex flex-col justify-between hover:border-zinc-700 transition-colors shadow-lg">
           <div className="space-y-4">
-            <div className="flex justify-start">
+            <div className="flex justify-between items-start">
               <span className="px-3 py-1 bg-zinc-900 text-blue-500 border border-zinc-800 text-[10px] font-black rounded-full uppercase tracking-widest font-mono">
                 {d.code}
+              </span>
+              <span className="px-2 py-1 bg-zinc-900 text-zinc-500 text-[9px] font-bold rounded-full border border-zinc-800 font-mono">
+                {formatSemester(d.semester)}
               </span>
             </div>
             <h3 className="text-lg font-black text-white leading-snug">{d.name}</h3>

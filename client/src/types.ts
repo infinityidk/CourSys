@@ -34,6 +34,7 @@ export interface ScheduleCourse {
     grade?: string
     pending?: { code: string; name: string }[]
     missing?: { code: string; name: string }[][]
+    semester?: string
 }
 export interface GradeItem {
     code: string
@@ -41,6 +42,7 @@ export interface GradeItem {
     credits: string
     score: string
     grade: string
+    semester: string
 }
 export interface TimetableCourse {
     code: string

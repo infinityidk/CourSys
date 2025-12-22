@@ -11,8 +11,8 @@ export function formatEra(code: string) {
     return ERA_MAP[code] || "未知"
 }
 export function formatSemester(code: string) {
-    const [year, term] = code.split('-')
-    return `${year} ${TERM_MAP[term] || "未知学期"}`
+    const termCode = code.slice(9);
+    return `${termCode === "1" ? code.slice(0, 4) : code.slice(5, 9)} ${TERM_MAP[termCode] || "未知学期"}`;
 }
 export function formatWeeks(weeks: number[]) {
     if (!weeks.length) return ""
@@ -24,7 +24,7 @@ export function formatWeeks(weeks: number[]) {
         }
     }
     if (flag)
-        return weeks[0] == 1 ? "单周" : "双周"
+        return weeks[0] === 1 ? "单周" : "双周"
     const ranges = []
     let start = weeks[0], end = weeks[0]
     for (let i = 1; i < weeks.length; i++) {
