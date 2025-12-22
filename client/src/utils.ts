@@ -14,30 +14,15 @@ export function formatSemester(code: string) {
     const termCode = code.slice(9);
     return `${termCode === "1" ? code.slice(0, 4) : code.slice(5, 9)} ${TERM_MAP[termCode] || "未知学期"}`;
 }
-export function formatWeeks(weeks: number[]) {
-    if (!weeks.length) return ""
-    let flag = true
-    for (let i = 1; i < weeks.length; i++) {
-        if (weeks[i] != weeks[i - 1] + 2) {
-            flag = false
-            break
-        }
-    }
-    if (flag)
-        return weeks[0] === 1 ? "单周" : "双周"
-    const ranges = []
-    let start = weeks[0], end = weeks[0]
-    for (let i = 1; i < weeks.length; i++) {
-        if (weeks[i] === end + 1) {
-            end = weeks[i]
-        } else {
-            ranges.push(start === end ? `${start}` : `${start}-${end}`)
-            start = end = weeks[i]
-        }
-    }
-    ranges.push(start === end ? `${start}` : `${start}-${end}`)
-    return ranges.join(',') + "周"
+export function formatWeeks(w: number[]) {
+    if (!w.length) return ""
+    if (w.length >= 4 && w.every((v, i) => !i || v === w[i - 1] + 2)) return w.length === 1 ? w[0] + "周" : w[0] + "-" + w[w.length - 1] + ((w[0] & 1) === 1 ? "单周" : "双周")
+    let s = w[0], e = w[0], r = []
+    for (let i = 1; i < w.length; i++)w[i] === e + 1 ? e = w[i] : (r.push(s === e ? s : s + "-" + e), s = e = w[i])
+    r.push(s === e ? s : s + "-" + e)
+    return r.join(",") + "周"
 }
+
 export function formatSlot(s: Slot) {
     const pStr = s.periods[0] === s.periods.at(-1)
         ? `${s.periods[0]}`
