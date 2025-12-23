@@ -71,7 +71,8 @@ async def get_syllabus(kcid: str):
         ),
         stream=True,
     )
-    if r.status_code != 200:
+    if r.status_code != 200 or "json" in r.headers.get("content-type", ""):
+        await r.aclose()
         raise HTTPException(404)
     return StreamingResponse(
         r.aiter_bytes(),
