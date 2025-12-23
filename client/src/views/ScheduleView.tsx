@@ -80,7 +80,7 @@ export default function ScheduleView({ data }: { data: ScheduleCourse[] }) {
         })
         return validOptions.length ? { ...t, options: validOptions } : null
       }).filter((t): t is Task => t !== null) ?? []
-      if (c.status || (courseMatch || teacherMatch)) {
+      if (courseMatch || teacherMatch) {
         if (!c.tasks || filteredTasks.length > 0 || c.status) {
           res.push(c.status ? c : { ...c, tasks: filteredTasks })
         }
@@ -215,6 +215,18 @@ export default function ScheduleView({ data }: { data: ScheduleCourse[] }) {
                   <span className={done ? "text-amber-700/70 font-mono" : "text-blue-600 font-mono"}>{c.code}</span>
                   <span className="text-zinc-700">/</span>
                   <span className="text-zinc-500">{c.dept}</span>
+                  <div className="ml-auto flex items-center gap-3">
+                    <a href={`https://ncesnext.com/search/?q=${c.code}`} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-zinc-500 hover:text-blue-400 transition-colors group/link" title="NCES 评教">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="w-3 h-3"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+                      <span className="group-hover/link">NCES</span>
+                    </a>
+                    {c.courseId && (
+                      <a href={`http://127.0.0.1:8000/syllabus/${c.courseId}`} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-zinc-500 hover:text-blue-400 transition-colors group/link" title="教学大纲">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="w-3 h-3"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
+                        <span className="group-hover/link">大纲</span>
+                      </a>
+                    )}
+                  </div>
                 </div>
                 {(c.missing?.length || c.pending?.length) && (
                   <div className="mt-2 pt-3 border-t border-dashed border-zinc-700/30 space-y-3">

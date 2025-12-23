@@ -1,5 +1,6 @@
 from fastapi import FastAPI, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 from httpx import AsyncClient
 from bs4 import BeautifulSoup
 import asyncio
@@ -57,6 +58,26 @@ async def fetch_prereq(courseId):
         return PREREQ_CACHE.setdefault(
             courseId, await fetch_prereq_logic(client, courseId)
         )
+
+
+@app.get("/syllabus/{kcid}")
+async def get_syllabus(kcid: str):
+    if "JSESSIONID" not in client.cookies:
+        raise HTTPException(401)
+    r = await client.send(
+        client.build_request(
+            "GET",
+            f"https://tis.sustech.edu.cn/kck/kcxxwh/downFj?fjflag=zwfj&kcid={kcid}",
+        ),
+        stream=True,
+    )
+    if r.status_code != 200:
+        raise HTTPException(404)
+    return StreamingResponse(
+        r.aiter_bytes(),
+        media_type="application/pdf",
+        headers={"Content-Disposition": "inline; filename=syllabus.pdf"},
+    )
 
 
 @app.post("/login")
