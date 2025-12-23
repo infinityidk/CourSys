@@ -9,44 +9,167 @@ const COLORS: Record<string, string> = {
   "G": "text-amber-400 border-amber-900 bg-amber-950/30",
   "O": "text-zinc-400 border-zinc-700 bg-zinc-900"
 }
+const PERIOD_MAP: Record<string, number[]> = {
+  "1-2": [1, 2], "3-4": [3, 4], "5-6": [5, 6], "7-8": [7, 8], "9-10": [9, 10], "11": [11]
+}
 export default function ScheduleView({ data }: { data: ScheduleCourse[] }) {
   const [searchInput, setSearchInput] = useState('')
   const [searchTerm, setSearchTerm] = useState('')
+  const [showFilters, setShowFilters] = useState(false)
+  const [hideForbidden, setHideForbidden] = useState(false)
+  const [hideMissing, setHideMissing] = useState(false)
+  const [hideCompleted, setHideCompleted] = useState(false)
+  const [hideStudying, setHideStudying] = useState(false)
+  const [selDepts, setSelDepts] = useState<string[]>([])
+  const [selCats, setSelCats] = useState<string[]>([])
+  const [selTypes, setSelTypes] = useState<string[]>([])
+  const [selEras, setSelEras] = useState<string[]>([])
+  const [selCredits, setSelCredits] = useState<string[]>([])
+  const [selDays, setSelDays] = useState<number[]>([])
+  const [selPeriods, setSelPeriods] = useState<string[]>([])
+  const options = useMemo(() => {
+    const d = new Set<string>(), c = new Set<string>(), t = new Set<string>(), e = new Set<string>(), cr = new Set<string>()
+    data.forEach(item => {
+      if (item.dept) d.add(item.dept)
+      if (item.category) c.add(item.category)
+      if (item.type) t.add(item.type)
+      if (item.era) e.add(item.era)
+      if (item.credits) cr.add(item.credits)
+    })
+    return {
+      depts: Array.from(d).sort(), cats: Array.from(c).sort(),
+      types: Array.from(t).sort(), eras: Array.from(e).sort(), credits: Array.from(cr).sort((a, b) => Number(a) - Number(b))
+    }
+  }, [data])
+  const toggle = <T,>(set: Set<T>, val: T) => {
+    const newSet = new Set(set); newSet.has(val) ? newSet.delete(val) : newSet.add(val); return Array.from(newSet)
+  }
   const filteredData = useMemo(() => {
     const term = searchTerm.toLowerCase().trim()
-    if (!term) return data
+    const depts = new Set(selDepts), cats = new Set(selCats), types = new Set(selTypes), eras = new Set(selEras), creds = new Set(selCredits)
+    const days = new Set(selDays)
+    const periods = new Set(selPeriods.flatMap(p => PERIOD_MAP[p]))
     return data.reduce<ScheduleCourse[]>((res, c) => {
-      const courseMatch = c.code.toLowerCase().includes(term) || c.name.toLowerCase().includes(term)
+      if (hideCompleted && c.status === 'completed') return res
+      if (hideStudying && c.status === 'studying') return res
+      if (hideForbidden && c.forbidden) return res
+      if (hideMissing && c.missing?.length) return res
+      if (depts.size && !depts.has(c.dept)) return res
+      if (cats.size && !cats.has(c.category)) return res
+      if (types.size && (!c.type || !types.has(c.type))) return res
+      if (eras.size && !eras.has(c.era)) return res
+      if (creds.size && !creds.has(c.credits)) return res
+      const courseMatch = !term || c.code.toLowerCase().includes(term) || c.name.toLowerCase().includes(term)
       let teacherMatch = false
       const filteredTasks = c.tasks?.map(t => {
+        if (hideForbidden && t.forbidden) return null
         const tMatch = t.teacher.toLowerCase().includes(term)
         if (tMatch) teacherMatch = true
-        const opts = t.options.filter(o => {
-          const oMatch = o.teacher?.toLowerCase().includes(term) ?? false
+        const validOptions = t.options.filter(o => {
+          if (days.size > 0 || periods.size > 0) {
+            const timeSubset = o.slots.every(s =>
+              (days.size === 0 || days.has(s.day)) &&
+              (periods.size === 0 || (s.periods[0] === s.periods[1] ? periods.has(s.periods[0]) :
+                Array.from({ length: s.periods[1] - s.periods[0] + 1 }, (_, i) => s.periods[0] + i).every(p => periods.has(p))))
+            )
+            if (!timeSubset) return false
+          }
+          const oMatch = !term || courseMatch || tMatch || (o.teacher?.toLowerCase().includes(term) ?? false)
           if (oMatch) teacherMatch = true
-          return tMatch || oMatch
+          return oMatch
         })
-        return opts.length ? { ...t, options: opts } : null
+        return validOptions.length ? { ...t, options: validOptions } : null
       }).filter((t): t is Task => t !== null) ?? []
-      if (courseMatch || teacherMatch) {
-        res.push(courseMatch || c.status ? c : { ...c, tasks: filteredTasks })
+      if (c.status || (courseMatch || teacherMatch)) {
+        if (!c.tasks || filteredTasks.length > 0 || c.status) {
+          res.push(c.status ? c : { ...c, tasks: filteredTasks })
+        }
       }
       return res
     }, [])
-  }, [data, searchTerm])
+  }, [data, searchTerm, hideForbidden, hideMissing, hideCompleted, hideStudying, selDepts, selCats, selTypes, selEras, selCredits, selDays, selPeriods])
   return (
     <div>
-      <div className="mb-6">
-        <div className="relative">
-          <input
-            type="text"
-            className="w-full max-w-xl pl-12 pr-4 py-3.5 bg-zinc-900/80 border border-zinc-700/80 rounded-2xl text-white placeholder-zinc-500 hover:border-zinc-600 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20 transition-all duration-200"
-            placeholder="搜索课程代码、名称或教师（按回车搜索）"
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter') { setSearchTerm(searchInput.trim()) } }}
-          />
+      <div className="mb-6 space-y-4">
+        <div className="flex gap-4">
+          <div className="relative flex-1">
+            <input
+              type="text"
+              className="w-full pl-12 pr-4 py-3.5 bg-zinc-900/80 border border-zinc-700/80 rounded-2xl text-white placeholder-zinc-500 hover:border-zinc-600 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20 transition-all duration-200"
+              placeholder="搜索课程代码、名称或教师"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') { setSearchTerm(searchInput.trim()) } }}
+            />
+          </div>
+          <button onClick={() => setShowFilters(!showFilters)} className={`px-6 rounded-2xl font-bold border transition-all ${showFilters ? "bg-white text-black border-white" : "bg-zinc-900 text-zinc-400 border-zinc-800 hover:text-white"}`}>
+            筛选
+          </button>
         </div>
+        {showFilters && (
+          <div className="bg-zinc-950 border border-zinc-800/60 rounded-3xl p-6 space-y-6 animate-fade-in-up shadow-xl">
+            <div className="flex flex-wrap gap-4 pb-4 border-b border-zinc-900">
+              {[
+                { l: "隐藏不可选", v: hideForbidden, s: setHideForbidden },
+                { l: "隐藏先修未满", v: hideMissing, s: setHideMissing },
+                { l: "隐藏已修读", v: hideCompleted, s: setHideCompleted },
+                { l: "隐藏修读中", v: hideStudying, s: setHideStudying },
+              ].map(f => (
+                <button key={f.l} onClick={() => f.s(!f.v)} className={`px-4 py-2 rounded-xl text-xs font-bold transition-all border ${f.v ? "bg-blue-500 border-blue-500 text-white" : "bg-zinc-900 border-zinc-800 text-zinc-500 hover:text-zinc-300"}`}>
+                  {f.l}
+                </button>
+              ))}
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <div className="text-[10px] font-black text-zinc-600 uppercase tracking-widest">时间可用性 (全选代表无限制)</div>
+                  <div className="flex gap-2">
+                    {["一", "二", "三", "四", "五", "六", "日"].map((d, i) => (
+                      <button key={d} onClick={() => setSelDays(toggle(new Set(selDays), i + 1))} className={`flex-1 py-2 rounded-lg text-xs font-bold border transition-all ${selDays.includes(i + 1) ? "bg-white text-black border-white" : "bg-zinc-900 text-zinc-500 border-zinc-800"}`}>
+                        {d}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="flex gap-2">
+                    {Object.keys(PERIOD_MAP).map(p => (
+                      <button key={p} onClick={() => setSelPeriods(toggle(new Set(selPeriods), p))} className={`flex-1 py-2 rounded-lg text-xs font-bold border transition-all ${selPeriods.includes(p) ? "bg-white text-black border-white" : "bg-zinc-900 text-zinc-500 border-zinc-800"}`}>
+                        {p}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                {[
+                  { k: "年级", opt: options.eras, v: selEras, s: setSelEras, fmt: formatEra },
+                  { k: "性质", opt: options.types, v: selTypes, s: setSelTypes },
+                  { k: "类别", opt: options.cats, v: selCats, s: setSelCats },
+                  { k: "学分", opt: options.credits, v: selCredits, s: setSelCredits },
+                ].map(g => (
+                  <div key={g.k} className="space-y-2">
+                    <div className="text-[10px] font-black text-zinc-600 uppercase tracking-widest">{g.k}</div>
+                    <div className="flex flex-wrap gap-2">
+                      {g.opt.map(o => (
+                        <button key={o} onClick={() => g.s(toggle(new Set(g.v), o))} className={`px-3 py-1.5 rounded-lg text-[10px] font-bold border transition-all ${g.v.includes(o) ? "bg-zinc-200 text-black border-zinc-200" : "bg-zinc-900 text-zinc-500 border-zinc-800"}`}>
+                          {g.fmt ? g.fmt(o) : o}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="space-y-2">
+                <div className="text-[10px] font-black text-zinc-600 uppercase tracking-widest">开课院系</div>
+                <div className="flex flex-wrap gap-2 max-h-[300px] overflow-y-auto content-start pr-2 custom-scrollbar">
+                  {options.depts.map(d => (
+                    <button key={d} onClick={() => setSelDepts(toggle(new Set(selDepts), d))} className={`px-3 py-1.5 rounded-lg text-[10px] font-bold border transition-all text-left ${selDepts.includes(d) ? "bg-blue-900/30 text-blue-400 border-blue-500/50" : "bg-zinc-900 text-zinc-500 border-zinc-800"}`}>
+                      {d}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
       <div className="columns-1 md:columns-2 xl:columns-3 gap-6 space-y-6 pb-20">
         {filteredData.map((c, i) => {
@@ -54,15 +177,23 @@ export default function ScheduleView({ data }: { data: ScheduleCourse[] }) {
           const studying = c.status === 'studying'
           const isAccessDenied = !!c.forbidden
           return (
-            <div key={`${c.code}-${i}`} className={`break-inside-avoid border-2 rounded-3xl overflow-hidden shadow-2xl transition-all ${done ? "bg-zinc-950 border-amber-600/40 shadow-amber-900/10" : studying ? "bg-zinc-950 border-blue-600/40 shadow-blue-900/10" : isAccessDenied ? "bg-red-950/20 border-red-600/40 shadow-red-900/10" : "bg-zinc-950 border-zinc-900"}`}>
-              <div className={`p-5 flex flex-col gap-3 ${done ? "bg-amber-900/5 border-b border-amber-900/20" : studying ? "bg-blue-900/5 border-b border-blue-900/20" : isAccessDenied ? "bg-red-900/10 border-b border-red-900/20" : "bg-zinc-900/50 border-b border-zinc-900"}`}>
+            <div key={`${c.code}-${i}`} className={`break-inside-avoid border-2 rounded-3xl overflow-hidden shadow-2xl transition-all ${done ? "bg-zinc-950 border-amber-600/40 shadow-amber-900/10"
+              : studying ? "bg-zinc-950 border-blue-600/40 shadow-blue-900/10"
+                : isAccessDenied ? "bg-red-950/20 border-red-600/40 shadow-red-900/10"
+                  : "bg-zinc-950 border-zinc-900"
+              }`}>
+              <div className={`p-5 flex flex-col gap-3 ${done ? "bg-amber-900/5 border-b border-amber-900/20"
+                : studying ? "bg-blue-900/5 border-b border-blue-900/20"
+                  : isAccessDenied ? "bg-red-900/10 border-b border-red-900/20"
+                    : "bg-zinc-900/50 border-b border-zinc-900"
+                }`}>
                 <div className="flex justify-between items-start">
                   <div className="space-y-1.5">
                     <div className="flex flex-wrap gap-2 items-center">
                       <span className={`px-2 py-0.5 text-[10px] font-black border rounded uppercase tracking-wider ${COLORS[c.era] || COLORS["O"]}`}>{formatEra(c.era)}</span>
                       <span className="px-2 py-0.5 bg-zinc-800 text-zinc-400 text-[10px] font-bold rounded uppercase tracking-wider">{c.category}</span>
                       {done ? <span className="px-2 py-0.5 bg-amber-500 text-black text-[10px] font-black rounded uppercase tracking-wider">已修读</span> : studying ? <span className="px-2 py-0.5 bg-blue-500 text-black text-[10px] font-black rounded uppercase tracking-wider">修读中</span> :
-                        <span className="px-2 py-0.5 bg-blue-900/30 text-blue-400 text-[10px] font-bold rounded uppercase tracking-wider">{c.type}</span>}
+                        c.type ? <span className="px-2 py-0.5 bg-blue-900/30 text-blue-400 text-[10px] font-bold rounded uppercase tracking-wider">{c.type}</span> : null}
                     </div>
                     <h2 className={`text-xl font-black leading-tight tracking-tight ${done ? studying ? "text-blue-100" : "text-amber-100" : "text-white"}`}>{c.name}</h2>
                   </div>
@@ -86,10 +217,10 @@ export default function ScheduleView({ data }: { data: ScheduleCourse[] }) {
                   <span className="text-zinc-500">{c.dept}</span>
                 </div>
                 {(c.missing?.length || c.pending?.length) && (
-                  <div className="mt-2 pt-3 border-t border-dashed space-y-3 border-zinc-700">
+                  <div className="mt-2 pt-3 border-t border-dashed border-zinc-700/30 space-y-3">
                     {!!c.missing?.length && (
                       <div className="space-y-1.5">
-                        <div className="text-[10px] font-black text-red-400 uppercase tracking-wider flex items-center gap-1">
+                        <div className="text-[10px] font-black text-red-500 uppercase tracking-wider flex items-center gap-1">
                           <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
                           未修读
                         </div>
@@ -116,7 +247,7 @@ export default function ScheduleView({ data }: { data: ScheduleCourse[] }) {
               </div>
               {!done && !studying && (
                 <>
-                  {c.req && <div className="px-5 py-2 bg-blue-950/20 border-b border-blue-900/10"><p className="text-[10px] text-blue-300/80 font-medium leading-relaxed line-clamp-3" title={c.req}><span className="font-black text-blue-500 mr-1">REQ:</span>{c.req}</p></div>}
+                  {c.req && <div className="px-5 py-2 bg-blue-950/20 border-b border-blue-900/10"><p className="text-[10px] text-blue-300/80 font-medium leading-relaxed line-clamp-3" title={c.req}><span className="font-black text-blue-500 mr-1">公告:</span>{c.req}</p></div>}
                   <div className="p-2 space-y-2">
                     {c.tasks && c.tasks.map((t, j) => (
                       <div key={`${t.className}-${j}`} className={`rounded-2xl border p-3 ${t.forbidden ? "bg-red-950/10 border-red-500/20 opacity-75" : "bg-zinc-900 border-zinc-800/60"}`}>
@@ -136,10 +267,10 @@ export default function ScheduleView({ data }: { data: ScheduleCourse[] }) {
                         )}
                         <div className="flex flex-col gap-2">
                           {t.options.map((opt, k) => (
-                            <button key={`${opt.name}-${k}`} className={`group flex flex-col border rounded-xl p-3 transition-all text-left ${t.forbidden ? "bg-transparent border-red-900/20 cursor-not-allowed" : "bg-black/40 border-zinc-800/50 hover:bg-zinc-800 hover:border-blue-500/30"}`}>
+                            <button key={`${opt.name}-${k}`} disabled={t.forbidden} className={`group flex flex-col border rounded-xl p-3 transition-all text-left ${t.forbidden ? "bg-transparent border-red-900/20 cursor-not-allowed" : "bg-black/40 border-zinc-800/50 hover:bg-zinc-800 hover:border-blue-500/30"}`}>
                               <div className="flex justify-between items-center mb-2 pb-2 border-b border-zinc-800/50">
                                 <div className="flex items-center gap-2">
-                                  <span className={`text-xs font-bold ${t.forbidden ? "text-zinc-500" : "text-zinc-300group-hover:text-blue-400 transition-colors"}`}>
+                                  <span className={`text-xs font-bold transition-colors ${t.forbidden ? "text-zinc-500" : "text-zinc-300 group-hover:text-blue-400"}`}>
                                     {translateOption(opt.name)}
                                   </span>
                                   {opt.teacher && (<span className="text-[10px] text-zinc-500">{opt.teacher}</span>)}
@@ -150,7 +281,7 @@ export default function ScheduleView({ data }: { data: ScheduleCourse[] }) {
                                 {opt.slots.map((s, l) => (
                                   <div key={l} className="flex gap-2 items-start text-[10px] leading-snug">
                                     <span className={`px-1.5 py-px rounded-[3px] text-[9px] font-black shrink-0 ${s.kind === 'LAB' ? 'bg-amber-950 text-amber-500 border border-amber-900/30' : 'bg-zinc-800 text-zinc-400 border border-zinc-700'}`}>{translateKind(s.kind)}</span>
-                                    <span className={`font-medium ${t.forbidden ? "text-zinc-600" : s.kind === 'LAB' ? 'text-amber-100/80' : 'text-zinc-400'} group-hover:text-zinc-200 transition-colors`}>{formatSlot(s)}</span>
+                                    <span className={`font-medium transition-colors ${t.forbidden ? "text-zinc-600" : s.kind === 'LAB' ? 'text-amber-100/80' : 'text-zinc-400 group-hover:text-zinc-200'}`}>{formatSlot(s)}</span>
                                   </div>
                                 ))}
                               </div>
