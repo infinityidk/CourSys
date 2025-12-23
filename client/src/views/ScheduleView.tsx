@@ -278,7 +278,7 @@ export default function ScheduleView({ data }: { data: ScheduleCourse[] }) {
                         </div>
                       )}
                       <div className="flex flex-col gap-2">
-                        {t.options.map((opt, k) => (
+                        {t.options.map((opt, k) => opt.slots.length > 0 && (
                           <button key={`${opt.name}-${k}`} disabled={t.forbidden} className={`group flex flex-col border rounded-xl p-3 transition-all text-left ${t.forbidden ? "bg-transparent border-red-900/20 cursor-not-allowed" : "bg-black/40 border-zinc-800/50 hover:bg-zinc-800 hover:border-blue-500/30"}`}>
                             <div className="flex justify-between items-center mb-2 pb-2 border-b border-zinc-800/50">
                               <div className="flex items-center gap-2">
