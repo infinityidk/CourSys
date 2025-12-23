@@ -19,6 +19,7 @@ export interface Task {
     forbidden: boolean
     allowedTarget?: string
     deniedTarget?: string
+    info?: string
 }
 export interface ScheduleCourse {
     code: string
@@ -29,7 +30,6 @@ export interface ScheduleCourse {
     category: string
     type?: string
     courseId?: string
-    req?: string
     tasks?: Task[]
     status?: string
     score?: string

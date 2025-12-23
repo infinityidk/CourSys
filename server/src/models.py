@@ -49,7 +49,6 @@ def build_hierarchy(data, info):
                     "dept",
                     "category",
                     "type",
-                    "req",
                 ]
             } | {"tasks": []}
         theory_slots = [{**s, "kind": "THEORY"} for s in p["slots"]]
@@ -99,6 +98,7 @@ def build_hierarchy(data, info):
                 "allowedTarget": m,
                 "deniedTarget": j,
                 "options": options,
+                "info": p["info"],
             }
         )
     for c in courses.values():

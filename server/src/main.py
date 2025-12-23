@@ -183,7 +183,7 @@ async def sync_all():
                             "semester": g["semester"],
                         }
                     )
-                    del c["tasks"], c["req"], c["courseId"], c["type"]
+                    del c["tasks"], c["courseId"], c["type"]
             if TIMETABLE_SEM != xn + xq:
                 for c in data:
                     if c["code"] in TIMETABLE_CACHE and "status" not in c:
@@ -192,7 +192,7 @@ async def sync_all():
                         ] == TIMETABLE_SEM:
                             continue
                         c.update({"status": "studying"})
-                        del c["tasks"], c["req"], c["courseId"], c["type"]
+                        del c["tasks"], c["courseId"], c["type"]
             if targets := [c for c in data if "courseId" in c and "forbidden" not in c]:
                 reqs = dict(
                     zip(

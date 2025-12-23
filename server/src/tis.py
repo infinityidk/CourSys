@@ -50,7 +50,7 @@ def get_era(code, level):
 
 
 def parse_slots(html):
-    res = {}
+    raw, group, res = {}, {}, []
     for w_str, d_str, p_str, room in re.findall(
         r"([\d\-,，]+(?:周|单周|双周)),星期([一二三四五六日])第(\d+(?:-\d+)?)节\s+([^<]+)",
         html or "",
@@ -81,13 +81,20 @@ def parse_slots(html):
                     continue
         ps = [int(x) for x in p_str.split("-")]
         k = ("一二三四五六日".find(d_str) + 1, (ps[0], ps[-1]), room.strip())
-        if k in res:
-            res[k]["weeks"].extend(weeks)
-        else:
-            res[k] = {"weeks": weeks, "day": k[0], "periods": list(k[1]), "room": k[2]}
-    for v in res.values():
-        v["weeks"] = sorted(set(v["weeks"]))
-    return list(res.values())
+        raw.setdefault(k, []).extend(weeks)
+    for (d, p, r), w in raw.items():
+        group.setdefault((d, r, tuple(sorted(set(w)))), []).append(p)
+    for (d, r, w), p in group.items():
+        p.sort()
+        s, e = p[0]
+        for ns, ne in p[1:]:
+            if ns <= e + 1:
+                e = max(e, ne)
+            else:
+                res.append({"weeks": list(w), "day": d, "periods": [s, e], "room": r})
+                s, e = ns, ne
+        res.append({"weeks": list(w), "day": d, "periods": [s, e], "room": r})
+    return res
 
 
 async def fetch_prereq_logic(client, courseId):
@@ -181,7 +188,7 @@ def parse_sche_item(d):
         "era": get_era(d.get("kcdm"), d.get("pylx")),
         "credits": f"{float(d.get('xf', 0)):g}",
         "slots": parse_slots(d.get("pkjgmx")),
-        "req": (re.search(r"选课要求:([\s\S]*?)</p>", d.get("kcxx") or "") or [0, ""])[
+        "info": (re.search(r"选课要求:([\s\S]*?)</p>", d.get("kcxx") or "") or [0, ""])[
             1
         ].strip(),
     }

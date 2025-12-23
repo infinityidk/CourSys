@@ -238,7 +238,7 @@ export default function ScheduleView({ data }: { data: ScheduleCourse[] }) {
                     )}
                     {!!c.pending?.length && (
                       <div className="text-[10px] text-emerald-500 font-medium">
-                        <span className="font-black mr-1">修读中：</span>
+                        <span className="font-black mr-1">修读中:</span>
                         {c.pending.map((item) => `${item.code} ${item.name}`).join(" & ")}
                       </div>
                     )}
@@ -246,52 +246,51 @@ export default function ScheduleView({ data }: { data: ScheduleCourse[] }) {
                 )}
               </div>
               {!done && !studying && (
-                <>
-                  {c.req && <div className="px-5 py-2 bg-blue-950/20 border-b border-blue-900/10"><p className="text-[10px] text-blue-300/80 font-medium leading-relaxed line-clamp-3" title={c.req}><span className="font-black text-blue-500 mr-1">公告:</span>{c.req}</p></div>}
-                  <div className="p-2 space-y-2">
-                    {c.tasks && c.tasks.map((t, j) => (
-                      <div key={`${t.className}-${j}`} className={`rounded-2xl border p-3 ${t.forbidden ? "bg-red-950/10 border-red-500/20 opacity-75" : "bg-zinc-900 border-zinc-800/60"}`}>
-                        <div className="flex items-center justify-between mb-3 px-1">
-                          <div className="flex items-center gap-2">
-                            <div className={`w-1 h-4 rounded-full ${t.forbidden ? "bg-red-600" : "bg-blue-600"}`} />
-                            <h3 className={`text-xs font-bold ${t.forbidden ? "text-red-200" : "text-zinc-200"}`}>{t.className}</h3>
-                            <span className="text-[10px] text-zinc-500">{t.teacher}</span>
-                          </div>
-                          {t.forbidden && <span className="text-[9px] font-black bg-red-900/40 text-red-400 px-1.5 py-0.5 rounded border border-red-900/50">不可选择</span>}
+                <div className="p-2 space-y-2">
+                  {c.tasks && c.tasks.map((t, j) => (
+                    <div key={`${t.className}-${j}`} className={`rounded-2xl border p-3 ${t.forbidden ? "bg-red-950/10 border-red-500/20 opacity-75" : "bg-zinc-900 border-zinc-800/60"}`}>
+                      <div className="flex items-center justify-between mb-3 px-1">
+                        <div className="flex items-center gap-2">
+                          <div className={`w-1 h-4 rounded-full ${t.forbidden ? "bg-red-600" : "bg-blue-600"}`} />
+                          <h3 className={`text-xs font-bold ${t.forbidden ? "text-red-200" : "text-zinc-200"}`}>{t.className}</h3>
+                          <span className="text-[10px] text-zinc-500">{t.teacher}</span>
                         </div>
-                        {t.forbidden && (t.allowedTarget || t.deniedTarget) && (
-                          <div className="mb-3 px-1 text-[9px] font-mono leading-tight">
-                            {t.allowedTarget && <div className="text-zinc-500"><span className="text-red-400 mr-1">面向:</span>{t.allowedTarget}</div>}
-                            {t.deniedTarget && <div className="text-zinc-500"><span className="text-red-400 mr-1">禁止:</span>{t.deniedTarget}</div>}
-                          </div>
-                        )}
-                        <div className="flex flex-col gap-2">
-                          {t.options.map((opt, k) => (
-                            <button key={`${opt.name}-${k}`} disabled={t.forbidden} className={`group flex flex-col border rounded-xl p-3 transition-all text-left ${t.forbidden ? "bg-transparent border-red-900/20 cursor-not-allowed" : "bg-black/40 border-zinc-800/50 hover:bg-zinc-800 hover:border-blue-500/30"}`}>
-                              <div className="flex justify-between items-center mb-2 pb-2 border-b border-zinc-800/50">
-                                <div className="flex items-center gap-2">
-                                  <span className={`text-xs font-bold transition-colors ${t.forbidden ? "text-zinc-500" : "text-zinc-300 group-hover:text-blue-400"}`}>
-                                    {translateOption(opt.name)}
-                                  </span>
-                                  {opt.teacher && (<span className="text-[10px] text-zinc-500">{opt.teacher}</span>)}
-                                </div>
-                                <div className="flex gap-2 text-[9px] font-mono text-zinc-600"><span className={Number(opt.capacity) <= 0 ? "text-red-500" : ""}>容:{opt.capacity}</span><span className="text-zinc-700">|</span><span>座:{opt.seats}</span></div>
-                              </div>
-                              <div className="space-y-1.5 w-full">
-                                {opt.slots.map((s, l) => (
-                                  <div key={l} className="flex gap-2 items-start text-[10px] leading-snug">
-                                    <span className={`px-1.5 py-px rounded-[3px] text-[9px] font-black shrink-0 ${s.kind === 'LAB' ? 'bg-amber-950 text-amber-500 border border-amber-900/30' : 'bg-zinc-800 text-zinc-400 border border-zinc-700'}`}>{translateKind(s.kind)}</span>
-                                    <span className={`font-medium transition-colors ${t.forbidden ? "text-zinc-600" : s.kind === 'LAB' ? 'text-amber-100/80' : 'text-zinc-400 group-hover:text-zinc-200'}`}>{formatSlot(s)}</span>
-                                  </div>
-                                ))}
-                              </div>
-                            </button>
-                          ))}
-                        </div>
+                        {t.forbidden && <span className="text-[9px] font-black bg-red-900/40 text-red-400 px-1.5 py-0.5 rounded border border-red-900/50">不可选择</span>}
                       </div>
-                    ))}
-                  </div>
-                </>
+                      {t.info && <div className="mb-2 px-1 text-[9px] font-mono text-blue-400 leading-relaxed"><span className="font-black mr-1">公告:</span>{t.info}
+                      </div>}
+                      {t.forbidden && (t.allowedTarget || t.deniedTarget) && (
+                        <div className="mb-3 px-1 text-[9px] font-mono leading-tight">
+                          {t.allowedTarget && <div className="text-zinc-500"><span className="text-red-400 mr-1">面向:</span>{t.allowedTarget}</div>}
+                          {t.deniedTarget && <div className="text-zinc-500"><span className="text-red-400 mr-1">禁止:</span>{t.deniedTarget}</div>}
+                        </div>
+                      )}
+                      <div className="flex flex-col gap-2">
+                        {t.options.map((opt, k) => (
+                          <button key={`${opt.name}-${k}`} disabled={t.forbidden} className={`group flex flex-col border rounded-xl p-3 transition-all text-left ${t.forbidden ? "bg-transparent border-red-900/20 cursor-not-allowed" : "bg-black/40 border-zinc-800/50 hover:bg-zinc-800 hover:border-blue-500/30"}`}>
+                            <div className="flex justify-between items-center mb-2 pb-2 border-b border-zinc-800/50">
+                              <div className="flex items-center gap-2">
+                                <span className={`text-xs font-bold transition-colors ${t.forbidden ? "text-zinc-500" : "text-zinc-300 group-hover:text-blue-400"}`}>
+                                  {translateOption(opt.name)}
+                                </span>
+                                {opt.teacher && (<span className="text-[10px] text-zinc-500">{opt.teacher}</span>)}
+                              </div>
+                              <div className="flex gap-2 text-[9px] font-mono text-zinc-600"><span className={Number(opt.capacity) <= 0 ? "text-red-500" : ""}>容量:{opt.capacity}</span><span className="text-zinc-700">|</span><span>座位:{opt.seats}</span></div>
+                            </div>
+                            <div className="space-y-1.5 w-full">
+                              {opt.slots.map((s, l) => (
+                                <div key={l} className="flex gap-2 items-start text-[10px] leading-snug">
+                                  <span className={`px-1.5 py-px rounded-[3px] text-[9px] font-black shrink-0 ${s.kind === 'LAB' ? 'bg-amber-950 text-amber-500 border border-amber-900/30' : 'bg-zinc-800 text-zinc-400 border border-zinc-700'}`}>{translateKind(s.kind)}</span>
+                                  <span className={`font-medium transition-colors ${t.forbidden ? "text-zinc-600" : s.kind === 'LAB' ? 'text-amber-100/80' : 'text-zinc-400 group-hover:text-zinc-200'}`}>{formatSlot(s)}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
               )}
             </div>
           )
