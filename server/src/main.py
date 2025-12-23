@@ -116,8 +116,7 @@ async def sync_grades():
     res = await client.post(
         "https://tis.sustech.edu.cn/cjgl/grcjcx/grcjcx",
         json={
-            "cxbj": "-1",
-            "pylx": STUDENT_INFO["PYLX"],
+            "pylx": STUDENT_INFO["level"],
             "current": 1,
             "pageSize": 1000,
         },
