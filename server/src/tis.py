@@ -50,7 +50,7 @@ def get_era(code, level):
 
 
 def parse_slots(html):
-    res = []
+    res = {}
     for w_str, d_str, p_str, room in re.findall(
         r"([\d\-,，]+(?:周|单周|双周)),星期([一二三四五六日])第(\d+(?:-\d+)?)节\s+([^<]+)",
         html or "",
@@ -80,15 +80,14 @@ def parse_slots(html):
                 except ValueError:
                     continue
         ps = [int(x) for x in p_str.split("-")]
-        res.append(
-            {
-                "weeks": sorted(set(weeks)),
-                "day": "一二三四五六日".find(d_str) + 1,
-                "periods": [ps[0], ps[-1]],
-                "room": room.strip(),
-            }
-        )
-    return res
+        k = ("一二三四五六日".find(d_str) + 1, (ps[0], ps[-1]), room.strip())
+        if k in res:
+            res[k]["weeks"].extend(weeks)
+        else:
+            res[k] = {"weeks": weeks, "day": k[0], "periods": list(k[1]), "room": k[2]}
+    for v in res.values():
+        v["weeks"] = sorted(set(v["weeks"]))
+    return list(res.values())
 
 
 async def fetch_prereq_logic(client, courseId):
