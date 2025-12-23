@@ -22,7 +22,6 @@ export function formatWeeks(w: number[]) {
     r.push(s === e ? s : s + "-" + e)
     return r.join(",") + "周"
 }
-
 export function formatSlot(s: Slot) {
     const pStr = s.periods[0] === s.periods.at(-1)
         ? `${s.periods[0]}`

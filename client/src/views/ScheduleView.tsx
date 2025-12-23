@@ -52,10 +52,10 @@ export default function ScheduleView({ data }: { data: ScheduleCourse[] }) {
         {filteredData.map((c, i) => {
           const done = c.status === 'completed'
           const studying = c.status === 'studying'
-          const isMissing = !!c.missing?.length
+          const isAccessDenied = !!c.forbidden
           return (
-            <div key={`${c.code}-${i}`} className={`break-inside-avoid border-2 rounded-3xl overflow-hidden shadow-2xl transition-all ${done ? "bg-zinc-950 border-amber-600/40 shadow-amber-900/10" : studying ? "bg-zinc-950 border-blue-600/40 shadow-blue-900/10" : isMissing ? "bg-red-950/20 border-red-600/40 shadow-red-900/10" : "bg-zinc-950 border-zinc-900"}`}>
-              <div className={`p-5 flex flex-col gap-3 ${done ? "bg-amber-900/5 border-b border-amber-900/20" : studying ? "bg-blue-900/5 border-b border-blue-900/20" : isMissing ? "bg-red-900/10 border-b border-red-900/20" : "bg-zinc-900/50 border-b border-zinc-900"}`}>
+            <div key={`${c.code}-${i}`} className={`break-inside-avoid border-2 rounded-3xl overflow-hidden shadow-2xl transition-all ${done ? "bg-zinc-950 border-amber-600/40 shadow-amber-900/10" : studying ? "bg-zinc-950 border-blue-600/40 shadow-blue-900/10" : isAccessDenied ? "bg-red-950/20 border-red-600/40 shadow-red-900/10" : "bg-zinc-950 border-zinc-900"}`}>
+              <div className={`p-5 flex flex-col gap-3 ${done ? "bg-amber-900/5 border-b border-amber-900/20" : studying ? "bg-blue-900/5 border-b border-blue-900/20" : isAccessDenied ? "bg-red-900/10 border-b border-red-900/20" : "bg-zinc-900/50 border-b border-zinc-900"}`}>
                 <div className="flex justify-between items-start">
                   <div className="space-y-1.5">
                     <div className="flex flex-wrap gap-2 items-center">
@@ -84,10 +84,9 @@ export default function ScheduleView({ data }: { data: ScheduleCourse[] }) {
                   <span className={done ? "text-amber-700/70 font-mono" : "text-blue-600 font-mono"}>{c.code}</span>
                   <span className="text-zinc-700">/</span>
                   <span className="text-zinc-500">{c.dept}</span>
-                  {!done && !studying && c.target && <span className="ml-auto text-amber-500 border border-amber-900/50 bg-amber-950/30 px-1.5 rounded">{c.target}</span>}
                 </div>
                 {(c.missing?.length || c.pending?.length) && (
-                  <div className={`mt-2 pt-3 border-t border-dashed space-y-3 ${isMissing ? 'border-red-500/20' : 'border-zinc-700/30'}`}>
+                  <div className="mt-2 pt-3 border-t border-dashed space-y-3 border-zinc-700">
                     {!!c.missing?.length && (
                       <div className="space-y-1.5">
                         <div className="text-[10px] font-black text-red-400 uppercase tracking-wider flex items-center gap-1">
@@ -120,14 +119,27 @@ export default function ScheduleView({ data }: { data: ScheduleCourse[] }) {
                   {c.req && <div className="px-5 py-2 bg-blue-950/20 border-b border-blue-900/10"><p className="text-[10px] text-blue-300/80 font-medium leading-relaxed line-clamp-3" title={c.req}><span className="font-black text-blue-500 mr-1">REQ:</span>{c.req}</p></div>}
                   <div className="p-2 space-y-2">
                     {c.tasks && c.tasks.map((t, j) => (
-                      <div key={`${t.className}-${j}`} className={`rounded-2xl border p-3 ${isMissing ? "bg-red-950/10 border-red-500/20" : "bg-zinc-900 border-zinc-800/60"}`}>
-                        <div className="flex items-center gap-2 mb-3 px-1"><div className="w-1 h-4 bg-blue-600 rounded-full" /><h3 className="text-xs font-bold text-zinc-200">{t.className}</h3><span className="text-[10px] text-zinc-500">{t.teacher}</span></div>
+                      <div key={`${t.className}-${j}`} className={`rounded-2xl border p-3 ${t.forbidden ? "bg-red-950/10 border-red-500/20 opacity-75" : "bg-zinc-900 border-zinc-800/60"}`}>
+                        <div className="flex items-center justify-between mb-3 px-1">
+                          <div className="flex items-center gap-2">
+                            <div className={`w-1 h-4 rounded-full ${t.forbidden ? "bg-red-600" : "bg-blue-600"}`} />
+                            <h3 className={`text-xs font-bold ${t.forbidden ? "text-red-200" : "text-zinc-200"}`}>{t.className}</h3>
+                            <span className="text-[10px] text-zinc-500">{t.teacher}</span>
+                          </div>
+                          {t.forbidden && <span className="text-[9px] font-black bg-red-900/40 text-red-400 px-1.5 py-0.5 rounded border border-red-900/50">不可选择</span>}
+                        </div>
+                        {t.forbidden && (t.allowedTarget || t.deniedTarget) && (
+                          <div className="mb-3 px-1 text-[9px] font-mono leading-tight">
+                            {t.allowedTarget && <div className="text-zinc-500"><span className="text-red-400 mr-1">面向:</span>{t.allowedTarget}</div>}
+                            {t.deniedTarget && <div className="text-zinc-500"><span className="text-red-400 mr-1">禁止:</span>{t.deniedTarget}</div>}
+                          </div>
+                        )}
                         <div className="flex flex-col gap-2">
                           {t.options.map((opt, k) => (
-                            <button key={`${opt.name}-${k}`} className="group flex flex-col bg-black/40 border border-zinc-800/50 hover:bg-zinc-800 hover:border-blue-500/30 rounded-xl p-3 transition-all text-left">
+                            <button key={`${opt.name}-${k}`} className={`group flex flex-col border rounded-xl p-3 transition-all text-left ${t.forbidden ? "bg-transparent border-red-900/20 cursor-not-allowed" : "bg-black/40 border-zinc-800/50 hover:bg-zinc-800 hover:border-blue-500/30"}`}>
                               <div className="flex justify-between items-center mb-2 pb-2 border-b border-zinc-800/50">
                                 <div className="flex items-center gap-2">
-                                  <span className="text-xs font-bold text-zinc-300 group-hover:text-blue-400 transition-colors">
+                                  <span className={`text-xs font-bold ${t.forbidden ? "text-zinc-500" : "text-zinc-300group-hover:text-blue-400 transition-colors"}`}>
                                     {translateOption(opt.name)}
                                   </span>
                                   {opt.teacher && (<span className="text-[10px] text-zinc-500">{opt.teacher}</span>)}
@@ -138,7 +150,7 @@ export default function ScheduleView({ data }: { data: ScheduleCourse[] }) {
                                 {opt.slots.map((s, l) => (
                                   <div key={l} className="flex gap-2 items-start text-[10px] leading-snug">
                                     <span className={`px-1.5 py-px rounded-[3px] text-[9px] font-black shrink-0 ${s.kind === 'LAB' ? 'bg-amber-950 text-amber-500 border border-amber-900/30' : 'bg-zinc-800 text-zinc-400 border border-zinc-700'}`}>{translateKind(s.kind)}</span>
-                                    <span className={`font-medium ${s.kind === 'LAB' ? 'text-amber-100/80' : 'text-zinc-400'} group-hover:text-zinc-200 transition-colors`}>{formatSlot(s)}</span>
+                                    <span className={`font-medium ${t.forbidden ? "text-zinc-600" : s.kind === 'LAB' ? 'text-amber-100/80' : 'text-zinc-400'} group-hover:text-zinc-200 transition-colors`}>{formatSlot(s)}</span>
                                   </div>
                                 ))}
                               </div>

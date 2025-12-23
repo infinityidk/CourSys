@@ -16,6 +16,9 @@ export interface Task {
     className: string
     teacher: string
     options: Option[]
+    forbidden: boolean
+    allowedTarget?: string
+    deniedTarget?: string
 }
 export interface ScheduleCourse {
     code: string
@@ -26,7 +29,6 @@ export interface ScheduleCourse {
     category: string
     type?: string
     courseId?: string
-    target?: string
     req?: string
     tasks?: Task[]
     status?: string
@@ -35,6 +37,7 @@ export interface ScheduleCourse {
     pending?: { code: string; name: string }[]
     missing?: { code: string; name: string }[][]
     semester?: string
+    forbidden?: boolean
 }
 export interface GradeItem {
     code: string

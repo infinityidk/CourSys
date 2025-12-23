@@ -33,6 +33,7 @@ TIMETABLE_CACHE = {}
 TIMETABLE_SEM = None
 PREREQ_CACHE = {}
 PREREQ_SEM = asyncio.Semaphore(12)
+STUDENT_INFO = None
 
 
 async def fetch_page(xn, xq, page=1):
@@ -60,6 +61,11 @@ async def fetch_prereq(courseId):
 
 @app.post("/login")
 async def login(username: str = Form(...), password: str = Form(...)):
+    global STUDENT_INFO
+    STUDENT_INFO = None
+    GRADES_CACHE.clear()
+    TIMETABLE_CACHE.clear()
+    PREREQ_CACHE.clear()
     url = "https://cas.sustech.edu.cn/cas/login?service=https%3A%2F%2Ftis.sustech.edu.cn%2Fcas"
     if "JSESSIONID" in client.cookies:
         return {"status": 1}
@@ -82,6 +88,23 @@ async def login(username: str = Form(...), password: str = Form(...)):
     if "JSESSIONID" not in client.cookies:
         raise HTTPException(401, "AUTH_FAILED")
     return {"status": 1}
+
+
+@app.get("/sync/info")
+async def sync_info():
+    global STUDENT_INFO
+    if STUDENT_INFO:
+        return STUDENT_INFO
+    res = await client.post("https://tis.sustech.edu.cn/UserManager/queryxsxx")
+    if res.status_code == 200 and (data := res.json()):
+        STUDENT_INFO = {
+            "level": data.get("PYLX", "1"),
+            "grade": data.get("NJMC", ""),
+            "department": data.get("YXMC", ""),
+            "major": data.get("ZYMC", ""),
+        }
+        return STUDENT_INFO
+    raise HTTPException(500, "STUDENT_INFO_FETCH_FAILED")
 
 
 @app.get("/sync/grades")
@@ -136,6 +159,8 @@ async def sync_all():
         await sync_grades()
     if not TIMETABLE_CACHE:
         await sync_timetable()
+    if not STUDENT_INFO:
+        await sync_info()
     for xn, xq in SEQ:
         first = await fetch_page(xn, xq)
         if first.get("total", 0) > 10:
@@ -146,7 +171,7 @@ async def sync_all():
                 )
                 for r in rest:
                     raw_list.extend(r.get("rwList", {}).get("list", []))
-            data = build_hierarchy([parse_sche_item(i) for i in raw_list])
+            data = build_hierarchy([parse_sche_item(i) for i in raw_list], STUDENT_INFO)
             for c in data:
                 if (g := GRADES_CACHE.get(c["code"])) and g["score"] != "F":
                     c.update(
@@ -157,7 +182,7 @@ async def sync_all():
                             "semester": g["semester"],
                         }
                     )
-                    del c["tasks"], c["target"], c["req"], c["courseId"], c["type"]
+                    del c["tasks"], c["req"], c["courseId"], c["type"]
             if TIMETABLE_SEM != xn + xq:
                 for c in data:
                     if c["code"] in TIMETABLE_CACHE and "status" not in c:
@@ -166,8 +191,8 @@ async def sync_all():
                         ] == TIMETABLE_SEM:
                             continue
                         c.update({"status": "studying"})
-                        del c["tasks"], c["target"], c["req"], c["courseId"], c["type"]
-            if targets := [c for c in data if c.get("courseId")]:
+                        del c["tasks"], c["req"], c["courseId"], c["type"]
+            if targets := [c for c in data if "courseId" in c and "forbidden" not in c]:
                 reqs = dict(
                     zip(
                         [c["courseId"] for c in targets],

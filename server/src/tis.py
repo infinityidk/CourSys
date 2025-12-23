@@ -7,13 +7,15 @@ M_SCHE = {
     "rwmc": "className",
     "kcdm": "code",
     "kcmc": "name",
-    "bksrl": "capacity",
+    "bksrl": "bachelorCapacity",
+    "yjsrl": "graduateCapacity",
     "kclbmc": "category",
     "kcxzmc": "type",
     "kkyxmc": "dept",
     "kcid": "courseId",
     "zhurwid": "parentId",
-    "mxdx": "target",
+    "mxdx": "allowedTarget",
+    "jzdx": "deniedTarget",
     "jszws": "seats",
 }
 
@@ -37,10 +39,10 @@ M_TIMETABLE = {
 LOGIC_CACHE = {}
 
 
-def get_era(code, pylx):
-    if not pylx:
+def get_era(code, level):
+    if not level:
         return ""
-    if str(pylx) != "1":
+    if str(level) != "1":
         return "G"
     return (
         n[0][0] if (n := re.findall(r"\d+", code or "")) and n[0][0] in "1234" else "O"
