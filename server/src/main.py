@@ -109,13 +109,15 @@ async def sync_info():
 
 @app.get("/sync/grades")
 async def sync_grades():
+    if not STUDENT_INFO:
+        await sync_info()
     if "JSESSIONID" not in client.cookies:
         raise HTTPException(401)
     res = await client.post(
         "https://tis.sustech.edu.cn/cjgl/grcjcx/grcjcx",
         json={
             "cxbj": "-1",
-            "pylx": "1",
+            "pylx": STUDENT_INFO["PYLX"],
             "current": 1,
             "pageSize": 1000,
         },

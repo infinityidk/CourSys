@@ -50,7 +50,7 @@ export interface GradeItem {
 export interface TimetableCourse {
     code: string
     className: string
-    type: string
+    type?: string
     category: string
     dept: string
     grading: string

@@ -43,7 +43,7 @@ export default function TimetableView({ data }: { data: TimetableCourse[] }) {
           {types.map(type => (
             <button
               key={type}
-              onClick={() => setFilter(type)}
+              onClick={() => type && setFilter(type)}
               className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${filter === type
                 ? 'bg-white text-black'
                 : 'bg-zinc-900 text-zinc-500 hover:text-white border border-zinc-800'
@@ -62,9 +62,9 @@ export default function TimetableView({ data }: { data: TimetableCourse[] }) {
           >
             <div className="space-y-4">
               <div className="flex flex-wrap gap-2 items-center">
-                <span className={`px-2 py-1 text-[10px] font-black border rounded uppercase tracking-wider ${getTypeColor(course.type)}`}>
+                {course.type && <span className={`px-2 py-1 text-[10px] font-black border rounded uppercase tracking-wider ${getTypeColor(course.type)}`}>
                   {course.type}
-                </span>
+                </span>}
                 <span className="px-2 py-1 bg-zinc-800 text-zinc-400 text-[10px] font-bold rounded uppercase tracking-wider">
                   {course.category}
                 </span>
