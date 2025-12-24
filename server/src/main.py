@@ -190,7 +190,6 @@ async def sync_all():
     )
     if not sched_raw:
         raise HTTPException(404, "NO_SEMESTER_DATA")
-    print("All data fetched, processing...")
     grades_map = {g["code"]: g for g in grades_data}
     tt_map = {t["code"]: t for t in tt_data}
     sched_data = build_hierarchy([parse_sche_item(i) for i in sched_raw], info)
@@ -231,8 +230,10 @@ async def sync_all():
                     continue
         if "forbidden" not in c:
             prereq_tasks.append(_fill_prereq(c))
+    print("Prerequisite tasks scheduled, awaiting completion...")
     if prereq_tasks:
         await asyncio.gather(*prereq_tasks)
+    print("All prerequisites filled.")
     return {
         "status": 1,
         "info": info,

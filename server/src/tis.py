@@ -105,6 +105,8 @@ def parse_slots(html):
 
 
 async def fetch_prereq_logic(client, courseId):
+    if courseId in LOGIC_CACHE:
+        return LOGIC_CACHE[courseId]
     start_len = len(LOGIC_CACHE)
 
     async def resolve_leaf(groupCode):
@@ -177,6 +179,7 @@ async def fetch_prereq_logic(client, courseId):
         return res
 
     res = await build("", 999)
+    LOGIC_CACHE[courseId] = res
     if len(LOGIC_CACHE) > start_len:
         CACHE_FILE.write_bytes(pickle.dumps(LOGIC_CACHE))
     return res
