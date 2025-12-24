@@ -1,5 +1,7 @@
 import re
 import asyncio
+import pickle
+from pathlib import Path
 from itertools import product
 
 M_SCHE = {
@@ -18,7 +20,6 @@ M_SCHE = {
     "jzdx": "deniedTarget",
     "jszws": "seats",
 }
-
 M_GRADE = {
     "kcdm": "code",
     "kcmc": "name",
@@ -26,7 +27,6 @@ M_GRADE = {
     "xscj": "grade",
     "xnxq": "semester",
 }
-
 M_TIMETABLE = {
     "kcdm": "code",
     "rwmc": "className",
@@ -35,17 +35,26 @@ M_TIMETABLE = {
     "kkyxmc": "dept",
     "jfzlbmc": "grading",
 }
+CACHE_FILE = Path("cache/logic.pkl")
+CACHE_FILE.parent.mkdir(exist_ok=True)
+LOGIC_CACHE = pickle.loads(CACHE_FILE.read_bytes()) if CACHE_FILE.exists() else {}
 
-LOGIC_CACHE = {}
+
+def clear_cache():
+    LOGIC_CACHE.clear()
+    CACHE_FILE.unlink(missing_ok=True)
 
 
 def get_era(code, level):
-    if not level:
-        return ""
-    if str(level) != "1":
-        return "G"
     return (
-        n[0][0] if (n := re.findall(r"\d+", code or "")) and n[0][0] in "1234" else "O"
+        n[0][0]
+        if level
+        and str(level) == "1"
+        and (n := re.findall(r"\d+", code or ""))
+        and n[0][0] in "1234"
+        else "G"
+        if level
+        else ""
     )
 
 
@@ -57,31 +66,29 @@ def parse_slots(html):
     ):
         mode = 1 if "单周" in w_str else 2 if "双周" in w_str else 0
         weeks = []
-        for p in [
-            x.strip()
-            for x in w_str.replace("单周", "")
+        for p in (
+            w_str.replace("单周", "")
             .replace("双周", "")
             .replace("周", "")
             .replace("，", ",")
             .split(",")
-            if x.strip()
-        ]:
-            if "-" in p:
-                try:
+        ):
+            if not p.strip():
+                continue
+            try:
+                if "-" in p:
                     s, e = map(int, p.split("-"))
                     weeks.extend(
                         w for w in range(s, e + 1) if mode == 0 or w % 2 == mode % 2
                     )
-                except ValueError:
-                    continue
-            else:
-                try:
+                else:
                     weeks.append(int(p))
-                except ValueError:
-                    continue
+            except ValueError:
+                continue
         ps = [int(x) for x in p_str.split("-")]
-        k = ("一二三四五六日".find(d_str) + 1, (ps[0], ps[-1]), room.strip())
-        raw.setdefault(k, []).extend(weeks)
+        raw.setdefault(
+            ("一二三四五六日".find(d_str) + 1, (ps[0], ps[-1]), room.strip()), []
+        ).extend(weeks)
     for (d, p, r), w in raw.items():
         group.setdefault((d, r, tuple(sorted(set(w)))), []).append(p)
     for (d, r, w), p in group.items():
@@ -98,6 +105,8 @@ def parse_slots(html):
 
 
 async def fetch_prereq_logic(client, courseId):
+    start_len = len(LOGIC_CACHE)
+
     async def resolve_leaf(groupCode):
         if groupCode in LOGIC_CACHE:
             return LOGIC_CACHE[groupCode]
@@ -167,7 +176,10 @@ async def fetch_prereq_logic(client, courseId):
             LOGIC_CACHE[groupCode] = res
         return res
 
-    return await build("", 999)
+    res = await build("", 999)
+    if len(LOGIC_CACHE) > start_len:
+        CACHE_FILE.write_bytes(pickle.dumps(LOGIC_CACHE))
+    return res
 
 
 def parse_grade_item(d):
@@ -203,11 +215,5 @@ def parse_timetable_item(d):
             )
         ),
         "credits": f"{float(d.get('xf', 0)):g}",
-        "slots": [
-            {
-                **s,
-                "kind": "THEORY",
-            }
-            for s in parse_slots(d.get("pkjgmx"))
-        ],
+        "slots": [{**s, "kind": "THEORY"} for s in parse_slots(d.get("pkjgmx"))],
     }
