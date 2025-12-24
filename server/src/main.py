@@ -230,10 +230,8 @@ async def sync_all():
                     continue
         if "forbidden" not in c:
             prereq_tasks.append(_fill_prereq(c))
-    print("Prerequisite tasks scheduled, awaiting completion...")
     if prereq_tasks:
         await asyncio.gather(*prereq_tasks)
-    print("All prerequisites filled.")
     return {
         "status": 1,
         "info": info,
