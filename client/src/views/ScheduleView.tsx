@@ -50,9 +50,11 @@ export default function ScheduleView({ data }: { data: ScheduleCourse[] }) {
     const depts = new Set(selDepts), cats = new Set(selCats), types = new Set(selTypes), eras = new Set(selEras), creds = new Set(selCredits)
     const days = new Set(selDays)
     const periods = new Set(selPeriods.flatMap(p => PERIOD_MAP[p]))
+    const hasTimeFilter = days.size > 0 || periods.size > 0
     return data.reduce<ScheduleCourse[]>((res, c) => {
       if (hideCompleted && c.status === 'completed') return res
       if (hideStudying && c.status === 'studying') return res
+      if (hasTimeFilter && c.status) return res
       if (hideForbidden && c.forbidden) return res
       if (hideMissing && c.missing?.length) return res
       if (depts.size && !depts.has(c.dept)) return res
@@ -67,7 +69,8 @@ export default function ScheduleView({ data }: { data: ScheduleCourse[] }) {
         const tMatch = t.teacher.toLowerCase().includes(term)
         if (tMatch) teacherMatch = true
         const validOptions = t.options.filter(o => {
-          if (days.size > 0 || periods.size > 0) {
+          if (hasTimeFilter) {
+            if (o.slots.length === 0) return false
             const timeSubset = o.slots.every(s =>
               (days.size === 0 || days.has(s.day)) &&
               (periods.size === 0 || (s.periods[0] === s.periods[1] ? periods.has(s.periods[0]) :
