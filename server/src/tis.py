@@ -3,6 +3,7 @@ import asyncio
 import pickle
 from pathlib import Path
 from itertools import product
+import datetime
 
 M_SCHE = {
     "id": "id",
@@ -43,6 +44,16 @@ LOGIC_CACHE = pickle.loads(CACHE_FILE.read_bytes()) if CACHE_FILE.exists() else 
 def clear_cache():
     LOGIC_CACHE.clear()
     CACHE_FILE.unlink(missing_ok=True)
+
+
+def get_cache_time():
+    return (
+        datetime.datetime.fromtimestamp(CACHE_FILE.stat().st_mtime)
+        .astimezone()
+        .isoformat(timespec="seconds")
+        if CACHE_FILE.exists()
+        else None
+    )
 
 
 def get_era(code, level):

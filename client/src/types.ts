@@ -58,3 +58,9 @@ export interface TimetableCourse {
     credits: string
     slots: Slot[]
 }
+export interface StudentInfo {
+    level: string
+    grade: string
+    department: string
+    major: string
+}

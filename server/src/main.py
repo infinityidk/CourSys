@@ -11,6 +11,7 @@ from tis import (
     parse_timetable_item,
     fetch_prereq_logic,
     clear_cache,
+    get_cache_time,
 )
 from models import build_hierarchy
 
@@ -236,6 +237,7 @@ async def sync_all():
         "status": 1,
         "info": info,
         "grades": grades_data,
+        "timestamp": get_cache_time(),
         "timetable": {"semester": tt_sem, "data": tt_data},
         "schedule": {"semester": sched_sem, "data": sched_data},
     }

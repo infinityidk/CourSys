@@ -16,6 +16,7 @@ export default function App() {
   const [grades, setGrades] = useState<GradeItem[]>([])
   const [timetable, setTimetable] = useState<{ semester: string, data: TimetableCourse[] }>({ semester: '', data: [] })
   const [schedule, setSchedule] = useState<{ semester: string, data: ScheduleCourse[] }>({ semester: '', data: [] })
+  const [timestamp, setTimestamp] = useState<string | null>(null)
   const sync = async () => {
     try {
       const res = await fetch('http://127.0.0.1:8000/sync')
@@ -25,12 +26,14 @@ export default function App() {
         setGrades(json.grades)
         setTimetable(json.timetable)
         setSchedule(json.schedule)
+        setTimestamp(json.timestamp)
         localStorage.setItem(KEY_DATA, JSON.stringify({
           info: json.info,
           grades: json.grades,
           timetable: json.timetable,
           schedule: json.schedule,
-          timestamp: Date.now()
+          timestamp: json.timestamp,
+          storageTimestamp: Date.now()
         }))
       } else if (res.status === 401) setAuth(false)
     } catch { }
@@ -40,7 +43,7 @@ export default function App() {
     if (cached) {
       try {
         const d = JSON.parse(cached)
-        setInfo(d.info); setGrades(d.grades); setTimetable(d.timetable); setSchedule(d.schedule)
+        setInfo(d.info); setGrades(d.grades); setTimetable(d.timetable); setSchedule(d.schedule); setTimestamp(d.timestamp)
         const lastTab = localStorage.getItem(KEY_TAB)
         if (lastTab) setTab(lastTab)
       } catch { localStorage.removeItem(KEY_DATA) }
@@ -74,7 +77,7 @@ export default function App() {
         </div>
       </header>
       <main className="max-w-[100rem] mx-auto pb-20 animate-fade-in-up">
-        {tab === 'home' && <HomeView info={info} />}
+        {tab === 'home' && <HomeView info={info} lastUpdate={timestamp} />}
         {tab === 'grades' && <GradesView data={grades} />}
         {tab === 'schedule' && <ScheduleView data={schedule.data} />}
         {tab === 'timetable' && <TimetableView data={timetable.data} />}
