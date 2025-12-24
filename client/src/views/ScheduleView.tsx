@@ -6,6 +6,7 @@ const COLORS: Record<string, string> = {
   "2": "text-cyan-400 border-cyan-900 bg-cyan-950/30",
   "3": "text-violet-400 border-violet-900 bg-violet-950/30",
   "4": "text-rose-400 border-rose-900 bg-rose-950/30",
+  "5": "text-white-400 border-white-900 bg-white-950/30",
   "G": "text-amber-400 border-amber-900 bg-amber-950/30",
   "O": "text-zinc-400 border-zinc-700 bg-zinc-900"
 }

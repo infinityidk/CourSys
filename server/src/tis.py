@@ -58,14 +58,15 @@ def get_cache_time():
 
 def get_era(code, level):
     return (
-        n[0][0]
-        if level
-        and str(level) == "1"
-        and (n := re.findall(r"\d+", code or ""))
-        and n[0][0] in "1234"
+        ""
+        if not level
         else "G"
-        if level
-        else ""
+        if str(level) == "2"
+        else (
+            n[0][0]
+            if (n := re.findall(r"\d+", code or "")) and n[0][0] in "12345"
+            else "O"
+        )
     )
 
 

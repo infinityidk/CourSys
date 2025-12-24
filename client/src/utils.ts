@@ -1,6 +1,6 @@
 import type { Slot } from './types'
 const ERA_MAP: Record<string, string> = {
-    "1": "大一", "2": "大二", "3": "大三", "4": "大四",
+    "1": "大一", "2": "大二", "3": "大三", "4": "大四", "5": "大五",
     "G": "研究生", "O": "其他"
 }
 const TERM_MAP: Record<string, string> = {
