@@ -26,10 +26,10 @@ client = AsyncClient(
 )
 YEAR = datetime.datetime.now().year
 SEQ = [
-    (f"{YEAR + 1}-{YEAR + 2}", "1"),
-    (f"{YEAR}-{YEAR + 1}", "3"),
-    (f"{YEAR}-{YEAR + 1}", "2"),
     (f"{YEAR}-{YEAR + 1}", "1"),
+    (f"{YEAR - 1}-{YEAR}", "3"),
+    (f"{YEAR - 1}-{YEAR}", "2"),
+    (f"{YEAR - 1}-{YEAR}", "1"),
 ]
 PREREQ_SEM = asyncio.Semaphore(12)
 
@@ -140,8 +140,7 @@ async def get_syllabus(kcid: str):
 @app.post("/login")
 async def login(username: str = Form(...), password: str = Form(...)):
     url = "https://cas.sustech.edu.cn/cas/login?service=https%3A%2F%2Ftis.sustech.edu.cn%2Fcas"
-    if "JSESSIONID" in client.cookies:
-        return {"status": 1}
+    client.cookies.clear()
     page = await client.get(url)
     if not (
         token := BeautifulSoup(page.text, "html.parser").find(
