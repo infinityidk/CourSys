@@ -3,3 +3,4 @@ uvicorn
 requests
 beautifulsoup4
 python-multipart
+httpx
