@@ -1,0 +1,21 @@
+[package]
+name = "backend"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+anyhow = "1.0.101"
+axum = { version = "0.8.8", features = ["macros"] }
+chrono = { version = "0.4.43", features = ["serde"] }
+cookie = "0.18.1"
+redis = { version = "1.0.3", features = ["tokio-comp", "connection-manager"] }
+regex = "1.12.3"
+reqwest = { version = "0.13.2", features = ["json", "cookies", "form"] }
+scraper = "0.25.0"
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.149"
+tokio = { version = "1.49.0", features = ["full"] }
+tracing = "0.1.44"
+tracing-subscriber = { version = "0.3.22", features = ["env-filter"] }
+ts-rs = "12.0.1"
+uuid = { version = "1.21.0", features = ["v4", "serde"] }
