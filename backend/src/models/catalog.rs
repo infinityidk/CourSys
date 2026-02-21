@@ -1,6 +1,12 @@
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
+#[derive(Debug, Deserialize, TS)]
+#[ts(export, export_to = "../../frontend/src/bindings/CatalogRequest.ts")]
+pub struct CatalogRequest {
+    pub semester: String,
+}
+
 #[derive(Debug, Clone, Deserialize)]
 pub struct RawTisCourse {
     #[serde(alias = "kxh")]
@@ -89,8 +95,8 @@ pub struct Class {
     pub groups: Vec<Group>,
 }
 #[derive(Debug, Clone, Serialize, Deserialize, TS)]
-#[ts(export, export_to = "../../frontend/src/bindings/DependencyNode.ts")]
-pub struct DependencyNode {
+#[ts(export, export_to = "../../frontend/src/bindings/Dependency.ts")]
+pub struct Dependency {
     pub code: String,
     pub name: String,
 }
@@ -105,7 +111,7 @@ pub struct Course {
     pub category: String,
     pub nature: String,
     pub department: String,
-    pub dependencies: Option<Vec<Vec<DependencyNode>>>,
+    pub dependencies: Option<Vec<Vec<Dependency>>>,
     pub classes: Vec<Class>,
     #[serde(skip_serializing)]
     pub course_id: String,

@@ -1,41 +1,19 @@
-use crate::state::AppState;
+use crate::{
+    state::{AppState, SemesterInfo},
+    utils::tis::query_catalog_page,
+};
 use chrono::{Datelike, FixedOffset, TimeZone, Utc};
-use redis::AsyncCommands;
 use std::sync::Arc;
 
-pub async fn query_rwxxcx_list(
-    state: &Arc<AppState>,
-    cookie: &str,
-    token: &str,
-    year: &str,
-    season: &str,
-    num: i32,
-    size: i32,
-) -> Result<serde_json::Value, anyhow::Error> {
-    let payload = [
-        ("p_xn", year.to_string()),
-        ("p_xq", season.to_string()),
-        ("p_chaxunpylx", "3".to_string()),
-        ("pageNum", num.to_string()),
-        ("pageSize", size.to_string()),
-    ];
-
-    let res = state
-        .http_client
-        .post("https://tis.sustech.edu.cn/Xsxktz/queryRwxxcxList")
-        .header(reqwest::header::COOKIE, cookie)
-        .form(&payload)
-        .send()
-        .await?;
-
-    let validated_res = crate::utils::tis::validate_tis_response(res, token, state)
-        .await
-        .map_err(|e| anyhow::anyhow!("TIS validation failed: {}", e))?;
-
-    let json: serde_json::Value =
-        serde_json::from_str(&validated_res).unwrap_or(serde_json::Value::Null);
-
-    Ok(json)
+async fn check_meta_valid(state: &Arc<AppState>) -> Option<SemesterInfo> {
+    let cache = state.semester_cache.read().await;
+    if let Some(info) = cache.as_ref() {
+        let tz = FixedOffset::east_opt(8 * 3600).unwrap();
+        if Utc::now().with_timezone(&tz).timestamp() < info.expires_at {
+            return Some(info.clone());
+        }
+    }
+    None
 }
 
 /// Fetches the global Current Semester based on latest schedule tasks payload.
@@ -44,70 +22,84 @@ pub async fn get_current_semester(
     cookie: &str,
     token: &str,
 ) -> Result<String, anyhow::Error> {
-    let mut valkey_conn = state.valkey_pool.clone();
-    let cache_key = "current_semester";
-
-    let cached: Option<String> = valkey_conn.get(cache_key).await.unwrap_or(None);
-    if let Some(semester) = cached {
-        return Ok(semester);
+    if let Some(info) = check_meta_valid(state).await {
+        return Ok(info.current);
     }
     let _guard = state.meta_fetch_lock.lock().await;
-    let cached: Option<String> = valkey_conn.get(cache_key).await.unwrap_or(None);
-    if let Some(semester) = cached {
-        return Ok(semester);
+    if let Some(info) = check_meta_valid(state).await {
+        return Ok(info.current);
     }
 
     let tz = FixedOffset::east_opt(8 * 3600).unwrap();
     let now = Utc::now().with_timezone(&tz);
+    let year = now.year();
 
-    let mut a = now.year();
-    let mut b = 1;
-    let current_semester;
-    let mut attempts = 0;
+    let seq = [
+        (format!("{}-{}", year, year + 1), "1"),
+        (format!("{}-{}", year - 1, year), "3"),
+        (format!("{}-{}", year - 1, year), "2"),
+        (format!("{}-{}", year - 1, year), "1"),
+    ];
 
-    loop {
-        if attempts > 4 {
-            return Err(anyhow::anyhow!(
-                "Failed to find current semester (Max attempts reached)"
-            ));
-        }
-        attempts += 1;
+    let mut current = None;
 
-        let year_str = format!("{}-{}", a, a + 1);
-        let season_str = format!("{}", b);
-
-        let json_body =
-            query_rwxxcx_list(state, cookie, token, &year_str, &season_str, 1, 1).await?;
-
-        let has_items = json_body
+    for (year_str, season_str) in seq.iter() {
+        let json = query_catalog_page(state, cookie, token, year_str, season_str, 1, 1).await?;
+        if json
             .get("rwList")
             .and_then(|r| r.get("list"))
             .and_then(|l| l.as_array())
             .map(|l| !l.is_empty())
-            .unwrap_or(false);
-
-        if has_items {
-            current_semester = format!("{}{}", year_str, b);
+            .unwrap_or(false)
+        {
+            current = Some(format!("{}{}", year_str, season_str));
             break;
-        } else {
-            b -= 1;
-            if b == 0 {
-                a -= 1;
-                b = 3;
-            }
         }
+    }
+
+    let current = current.ok_or_else(|| anyhow::anyhow!("Failed to fetch semester"))?;
+
+    let mut start: i32 = current[..4].parse()?;
+    let mut season: i32 = current[9..].parse()?;
+    let mut valid = Vec::with_capacity(4);
+    valid.push(current.clone());
+    for _ in 0..3 {
+        season -= 1;
+        if season == 0 {
+            season = 3;
+            start -= 1;
+        }
+        valid.push(format!("{}-{}{}", start, start + 1, season));
     }
 
     let next_midnight = tz
         .with_ymd_and_hms(now.year(), now.month(), now.day(), 0, 0, 0)
         .unwrap()
         + chrono::Duration::try_days(1).unwrap();
-    let seconds_to_midnight = (next_midnight.timestamp() - now.timestamp()) as u64;
+    let expires_at = next_midnight.timestamp();
 
-    let _: () = valkey_conn
-        .set_ex(cache_key, &current_semester, seconds_to_midnight)
-        .await
-        .unwrap_or(());
+    let old_last = {
+        let cache = state.semester_cache.read().await;
+        cache.as_ref().and_then(|info| info.valid.last().cloned())
+    };
+    if let Some(old) = old_last
+        && Some(&old) != valid.last()
+    {
+        let mut catalog_cache = state.catalog_cache.write().await;
+        catalog_cache.remove(&old);
+        tracing::info!(
+            "Semester changed, removed catalog cache for oldest semester: {}",
+            old
+        );
+    }
 
-    Ok(current_semester)
+    let info = SemesterInfo {
+        current: current.clone(),
+        valid,
+        expires_at,
+    };
+    let mut cache = state.semester_cache.write().await;
+    *cache = Some(info);
+
+    Ok(current)
 }

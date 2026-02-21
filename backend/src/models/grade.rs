@@ -1,7 +1,8 @@
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
-#[derive(Debug, Deserialize)]
+#[derive(Serialize, Deserialize, TS)]
+#[ts(export, export_to = "../../frontend/src/bindings/GradeRequest.ts")]
 pub struct GradeRequest {
     pub level: String,
 }

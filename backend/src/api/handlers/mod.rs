@@ -1,3 +1,4 @@
+pub mod catalog;
 pub mod grade;
 pub mod login;
 pub mod meta;

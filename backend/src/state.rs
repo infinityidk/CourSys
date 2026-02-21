@@ -1,12 +1,24 @@
+use crate::models::catalog::Course;
 use redis::Client;
-use std::sync::Arc;
-use tokio::sync::Mutex;
+use std::{collections::HashMap, sync::Arc, time::Instant};
+use tokio::sync::{Mutex, RwLock};
+type CatalogCache = Arc<RwLock<HashMap<String, (Instant, Vec<Course>)>>>;
+
+#[derive(Clone)]
+pub struct SemesterInfo {
+    pub current: String,
+    pub valid: Vec<String>,
+    pub expires_at: i64,
+}
 
 #[derive(Clone)]
 pub struct AppState {
     pub valkey_pool: redis::aio::ConnectionManager,
     pub http_client: reqwest::Client,
+    pub semester_cache: Arc<RwLock<Option<SemesterInfo>>>,
     pub meta_fetch_lock: Arc<Mutex<()>>,
+    pub catalog_cache: CatalogCache,
+    pub catalog_fetch_lock: Arc<Mutex<()>>,
 }
 
 impl AppState {
@@ -28,7 +40,10 @@ impl AppState {
         Ok(Self {
             valkey_pool,
             http_client,
+            semester_cache: Arc::new(RwLock::new(None)),
             meta_fetch_lock: Arc::new(Mutex::new(())),
+            catalog_cache: Arc::new(RwLock::new(HashMap::new())),
+            catalog_fetch_lock: Arc::new(Mutex::new(())),
         })
     }
 }

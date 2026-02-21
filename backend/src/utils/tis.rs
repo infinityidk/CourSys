@@ -36,3 +36,36 @@ async fn delete_session_and_error(
     let _ = delete_session(state, token).await;
     Err(StatusCode::UNAUTHORIZED)
 }
+
+pub async fn query_catalog_page(
+    state: &Arc<crate::state::AppState>,
+    cookie: &str,
+    token: &str,
+    year: &str,
+    season: &str,
+    page_num: i32,
+    page_size: i32,
+) -> Result<serde_json::Value, anyhow::Error> {
+    let payload = [
+        ("p_xn", year.to_string()),
+        ("p_xq", season.to_string()),
+        ("p_chaxunpylx", "3".to_string()),
+        ("pageNum", page_num.to_string()),
+        ("pageSize", page_size.to_string()),
+    ];
+
+    let res = state
+        .http_client
+        .post("https://tis.sustech.edu.cn/Xsxktz/queryRwxxcxList")
+        .header(reqwest::header::COOKIE, cookie)
+        .form(&payload)
+        .send()
+        .await?;
+
+    let validated = validate_tis_response(res, token, state)
+        .await
+        .map_err(|e| anyhow::anyhow!("TIS validation failed: {}", e))?;
+
+    let json = serde_json::from_str(&validated).unwrap_or(serde_json::Value::Null);
+    Ok(json)
+}
