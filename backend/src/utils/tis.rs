@@ -1,5 +1,6 @@
 use axum::http::StatusCode;
 use reqwest::Response;
+use serde::de::DeserializeOwned;
 use std::sync::Arc;
 
 use crate::services::session_manager::delete_session;
@@ -54,18 +55,28 @@ pub async fn query_catalog_page(
         ("pageSize", page_size.to_string()),
     ];
 
-    let res = state
-        .http_client
-        .post("https://tis.sustech.edu.cn/Xsxktz/queryRwxxcxList")
-        .header(reqwest::header::COOKIE, cookie)
-        .form(&payload)
-        .send()
-        .await?;
+    let json = send_request(
+        state
+            .http_client
+            .post("https://tis.sustech.edu.cn/Xsxktz/queryRwxxcxList")
+            .header(reqwest::header::COOKIE, cookie)
+            .form(&payload),
+        token,
+        state,
+    )
+    .await?;
+    Ok(json)
+}
 
-    let validated = validate_tis_response(res, token, state)
+pub async fn send_request<T: DeserializeOwned>(
+    req: reqwest::RequestBuilder,
+    token: &str,
+    state: &Arc<AppState>,
+) -> Result<T, anyhow::Error> {
+    let response = req.send().await?;
+    let text = validate_tis_response(response, token, state)
         .await
         .map_err(|e| anyhow::anyhow!("TIS validation failed: {}", e))?;
-
-    let json = serde_json::from_str(&validated).unwrap_or(serde_json::Value::Null);
-    Ok(json)
+    let data = serde_json::from_str(&text)?;
+    Ok(data)
 }

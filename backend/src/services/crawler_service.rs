@@ -1,8 +1,9 @@
 use crate::models::grade::GradeItem;
 use crate::models::user::UserInfoResponse;
 use crate::state::AppState;
-use crate::utils::tis::validate_tis_response;
+use crate::utils::tis::{send_request, validate_tis_response};
 use anyhow::Context;
+use serde_json::Value;
 use std::sync::Arc;
 
 pub async fn keep_alive(
@@ -29,17 +30,15 @@ pub async fn fetch_user_info(
     cookie: &str,
     token: &str,
 ) -> Result<UserInfoResponse, anyhow::Error> {
-    let res = state
-        .http_client
-        .post("https://tis.sustech.edu.cn/UserManager/queryxsxx")
-        .header(reqwest::header::COOKIE, cookie)
-        .send()
-        .await?;
-    let validated_res = validate_tis_response(res, token, state)
-        .await
-        .map_err(|e| anyhow::anyhow!("Validation failed: {}", e))?;
-
-    let tis_data: serde_json::Value = serde_json::from_str(&validated_res)?;
+    let tis_data: Value = send_request(
+        state
+            .http_client
+            .post("https://tis.sustech.edu.cn/UserManager/queryxsxx")
+            .header(reqwest::header::COOKIE, cookie),
+        token,
+        state,
+    )
+    .await?;
 
     serde_json::from_value::<UserInfoResponse>(tis_data).context("Failed to fetch user info")
 }
@@ -56,18 +55,16 @@ pub async fn fetch_grades(
         "pageSize": 1000,
     });
 
-    let res = state
-        .http_client
-        .post("https://tis.sustech.edu.cn/cjgl/grcjcx/grcjcx")
-        .header(reqwest::header::COOKIE, cookie)
-        .json(&payload)
-        .send()
-        .await?;
-    let validated_res = validate_tis_response(res, token, state)
-        .await
-        .map_err(|e| anyhow::anyhow!("Validation failed: {}", e))?;
-
-    let tis_data: serde_json::Value = serde_json::from_str(&validated_res)?;
+    let tis_data: Value = send_request(
+        state
+            .http_client
+            .post("https://tis.sustech.edu.cn/cjgl/grcjcx/grcjcx")
+            .header(reqwest::header::COOKIE, cookie)
+            .json(&payload),
+        token,
+        state,
+    )
+    .await?;
 
     Ok(
         serde_json::from_value::<Vec<GradeItem>>(tis_data["content"]["list"].clone())

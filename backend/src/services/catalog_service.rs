@@ -1,7 +1,7 @@
 use crate::models::catalog::{Class, Course, Dependency, Group, Leaf, Node, RawCourse, Slot};
 use crate::state::AppState;
 use crate::utils::parser::{get_era, parse_info, parse_slots};
-use crate::utils::tis::query_catalog_page;
+use crate::utils::tis::{query_catalog_page, send_request};
 use anyhow::Context;
 use async_recursion::async_recursion;
 use futures::StreamExt;
@@ -22,18 +22,21 @@ fn from_list(list: &[Value], by_code: &mut HashMap<String, Vec<RawCourse>>) -> a
 async fn fetch_leaves(
     state: &Arc<AppState>,
     cookie: &str,
+    token: &str,
     course_id: &str,
 ) -> Result<HashMap<String, Vec<Dependency>>, anyhow::Error> {
     let url = "https://tis.sustech.edu.cn/kck/xxxxkzkc/queryXxkc";
     let payload = serde_json::json!({ "kcid": course_id });
-    let response = state
-        .http_client
-        .post(url)
-        .header(reqwest::header::COOKIE, cookie)
-        .json(&payload)
-        .send()
-        .await?;
-    let json: Value = response.json().await?;
+    let json: Value = send_request(
+        state
+            .http_client
+            .post(url)
+            .header(reqwest::header::COOKIE, cookie)
+            .json(&payload),
+        token,
+        state,
+    )
+    .await?;
     let list = json["list"].as_array().unwrap();
     let mut leaves = HashMap::new();
     for item in list {
@@ -56,6 +59,7 @@ async fn fetch_leaves(
 async fn build_cnf(
     state: &Arc<AppState>,
     cookie: &str,
+    token: &str,
     group_code: Option<&str>,
     root_course_id: Option<&str>,
     relation: Option<&str>,
@@ -75,14 +79,17 @@ async fn build_cnf(
             root_course_id.ok_or_else(|| anyhow::anyhow!("No group_code and no root_course_id"))?;
         vec![("kzdm", ""), ("kcid", cid), ("kzlx", "1")]
     };
-    let response = state
-        .http_client
-        .post("https://tis.sustech.edu.cn/kck/xxxxkzkc/queryKzxx")
-        .header(reqwest::header::COOKIE, cookie)
-        .form(&params)
-        .send()
-        .await?;
-    let json: Value = response.json().await?;
+
+    let json: Value = send_request(
+        state
+            .http_client
+            .post("https://tis.sustech.edu.cn/kck/xxxxkzkc/queryKzxx")
+            .header(reqwest::header::COOKIE, cookie)
+            .form(&params),
+        token,
+        state,
+    )
+    .await?;
     let raw_nodes: Vec<Node> = json["kzList1"]
         .as_array()
         .map(|arr| {
@@ -97,6 +104,7 @@ async fn build_cnf(
         let child_cnf = build_cnf(
             state,
             cookie,
+            token,
             Some(&node.group_code),
             None,
             node.relation.as_deref(),
@@ -126,10 +134,20 @@ async fn build_cnf(
 pub async fn fetch_dependency_tree(
     state: &Arc<AppState>,
     cookie: &str,
+    token: &str,
     course_id: &str,
 ) -> Result<Vec<Vec<Dependency>>, anyhow::Error> {
-    let leaves = fetch_leaves(state, cookie, course_id).await?;
-    let result = build_cnf(state, cookie, None, Some(course_id), Some("2"), &leaves).await?;
+    let leaves = fetch_leaves(state, cookie, token, course_id).await?;
+    let result = build_cnf(
+        state,
+        cookie,
+        token,
+        None,
+        Some(course_id),
+        Some("2"),
+        &leaves,
+    )
+    .await?;
     Ok(result)
 }
 
@@ -309,7 +327,7 @@ pub async fn get_catalog(
         let id = course.id.clone();
         let code = course.code.clone();
         tasks.push(async move {
-            let deps = fetch_dependency_tree(state, cookie, &id).await;
+            let deps = fetch_dependency_tree(state, cookie, token, &id).await;
             (code, deps)
         });
     }
