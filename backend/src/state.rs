@@ -1,7 +1,11 @@
 use crate::models::catalog::Dependency;
 use dashmap::DashMap;
 use redis::Client;
-use std::{collections::HashMap, sync::Arc, time::Instant};
+use std::{
+    collections::HashMap,
+    sync::Arc,
+    time::{Duration, Instant},
+};
 use tokio::sync::{Mutex, RwLock};
 type CompressedCatalog = Arc<RwLock<HashMap<String, (Instant, Vec<u8>)>>>;
 type CatalogInfoCache =
@@ -37,6 +41,8 @@ impl AppState {
             .cookie_store(false)
             .connect_timeout(std::time::Duration::from_secs(10))
             .timeout(std::time::Duration::from_secs(30))
+            .pool_max_idle_per_host(20)
+            .pool_idle_timeout(Duration::from_secs(60))
             .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
             .redirect(reqwest::redirect::Policy::default())
             .build()

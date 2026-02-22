@@ -13,9 +13,12 @@ use axum::{
     extract::DefaultBodyLimit,
     routing::{get, post},
 };
+use reqwest::StatusCode;
 use std::sync::Arc;
+use std::time::Duration;
 use tower_http::compression::CompressionLayer;
 use tower_http::compression::predicate::SizeAbove;
+use tower_http::timeout::TimeoutLayer;
 
 pub fn create_router(state: Arc<AppState>) -> Router {
     Router::new()
@@ -31,6 +34,10 @@ pub fn create_router(state: Arc<AppState>) -> Router {
         .route("/api/select", post(select_handler))
         .route("/api/quit", post(quit_handler))
         .route("/api/mod", post(modify_handler))
+        .layer(TimeoutLayer::with_status_code(
+            StatusCode::GATEWAY_TIMEOUT,
+            Duration::from_secs(600),
+        ))
         .layer(DefaultBodyLimit::max(1024 * 10))
         .layer(CompressionLayer::new().compress_when(SizeAbove::new(1024)))
         .with_state(state)
