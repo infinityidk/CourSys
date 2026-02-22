@@ -30,7 +30,7 @@ pub struct ScheduleItem {
     #[serde(rename = "pkjgmx")]
     pub slots: String,
     #[serde(rename = "skyymc")]
-    pub language: String,
+    pub language: Option<String>,
     #[serde(rename = "kcxx")]
     pub info: String,
     #[serde(rename = "id")]
@@ -66,7 +66,7 @@ pub struct ScheduleResponse {
     pub department: String,
     pub teacher: Option<String>,
     pub slots: Vec<Slot>,
-    pub language: String,
+    pub language: Option<String>,
     pub info: Option<String>,
     pub id: String,
     pub undergraduate_number: String,

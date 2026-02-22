@@ -27,7 +27,7 @@ async fn fetch_leaves(
     cookie: &str,
     token: &str,
     course_id: &str,
-) -> Result<HashMap<String, Vec<Dependency>>, anyhow::Error> {
+) -> Result<HashMap<String, HashSet<Dependency>>, anyhow::Error> {
     let url = "https://tis.sustech.edu.cn/kck/xxxxkzkc/queryXxkc";
     let payload = serde_json::json!({ "kcid": course_id });
     let json: Value = send_request(
@@ -44,13 +44,10 @@ async fn fetch_leaves(
     let mut leaves = HashMap::new();
     for item in list {
         let raw: Leaf = serde_json::from_value(item.clone()).context("Failed to parse Leaf")?;
-        if raw.group_code.ends_with("_fz") {
-            continue;
-        }
         leaves
             .entry(raw.group_code)
-            .or_insert_with(Vec::new)
-            .push(Dependency {
+            .or_insert_with(HashSet::new)
+            .insert(Dependency {
                 code: raw.code,
                 name: raw.name,
             });
@@ -66,21 +63,22 @@ async fn build_cnf(
     group_code: Option<&str>,
     root_course_id: Option<&str>,
     relation: Option<&str>,
-    leaves: &HashMap<String, Vec<Dependency>>,
+    leaves: &HashMap<String, HashSet<Dependency>>,
+    list_type: &str,
 ) -> Result<Vec<Vec<Dependency>>, anyhow::Error> {
     if relation.is_none() {
         let code = group_code.ok_or_else(|| anyhow::anyhow!("Leaf node missing group_code"))?;
         let courses = leaves
             .get(code)
             .ok_or_else(|| anyhow::anyhow!("Leaf group_code {} not found in leaves", code))?;
-        return Ok(vec![courses.clone()]);
+        return Ok(vec![courses.iter().cloned().collect()]);
     }
     let params = if let Some(code) = group_code {
         vec![("kzdm", code)]
     } else {
         let cid =
             root_course_id.ok_or_else(|| anyhow::anyhow!("No group_code and no root_course_id"))?;
-        vec![("kzdm", ""), ("kcid", cid), ("kzlx", "1")]
+        vec![("kzdm", ""), ("kcid", cid), ("kzlx", list_type)]
     };
 
     let json: Value = send_request(
@@ -112,6 +110,7 @@ async fn build_cnf(
             None,
             node.relation.as_deref(),
             leaves,
+            list_type,
         )
         .await?;
         children_cnf.push(child_cnf);
@@ -141,7 +140,10 @@ pub async fn fetch_dependency_tree(
     course_id: &str,
 ) -> Result<Vec<Vec<Dependency>>, anyhow::Error> {
     let leaves = fetch_leaves(state, cookie, token, course_id).await?;
-    let result = build_cnf(
+    if leaves.is_empty() {
+        return Ok(vec![]);
+    }
+    match build_cnf(
         state,
         cookie,
         token,
@@ -149,9 +151,29 @@ pub async fn fetch_dependency_tree(
         Some(course_id),
         Some("2"),
         &leaves,
+        "1",
     )
-    .await?;
-    Ok(result)
+    .await
+    {
+        Ok(result) => return Ok(result),
+        Err(e) => {
+            tracing::warn!(
+                "First attempt with list_type=1 failed: {}, trying list_type=2",
+                e
+            );
+            build_cnf(
+                state,
+                cookie,
+                token,
+                None,
+                Some(course_id),
+                Some("2"),
+                &leaves,
+                "2",
+            )
+            .await
+        }
+    }
 }
 
 async fn fetch_catalog_full(

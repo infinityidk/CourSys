@@ -32,7 +32,7 @@ pub struct RawCourse {
     #[serde(rename = "pkjgmx")]
     pub slots: String,
     #[serde(rename = "skyymc")]
-    pub language: String,
+    pub language: Option<String>,
     #[serde(rename = "mxdx")]
     pub allowed: Option<String>,
     #[serde(rename = "jzdx")]
@@ -105,14 +105,14 @@ pub struct Group {
 pub struct Class {
     pub seq: String,
     pub teacher: Option<String>,
-    pub language: String,
+    pub language: Option<String>,
     pub allowed: Option<String>,
     pub denied: Option<String>,
     pub info: Option<String>,
     pub slots: Vec<Slot>,
     pub groups: Vec<Group>,
 }
-#[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[derive(Debug, Clone, Serialize, Deserialize, TS, Eq, PartialEq, Hash)]
 #[ts(export, export_to = "../../frontend/src/bindings/Dependency.ts")]
 pub struct Dependency {
     pub code: String,

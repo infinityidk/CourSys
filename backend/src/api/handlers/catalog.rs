@@ -1,6 +1,8 @@
 use crate::{
-    api::extractor::AuthSession, models::catalog::CatalogRequest,
-    services::catalog_service::get_catalog, state::AppState,
+    api::extractor::AuthSession,
+    models::catalog::CatalogRequest,
+    services::{catalog_service::get_catalog, meta_service::get_current_semester},
+    state::AppState,
 };
 use axum::{
     extract::{Query, State},
@@ -15,6 +17,9 @@ pub async fn catalog_handler(
     auth: AuthSession,
     Query(payload): Query<CatalogRequest>,
 ) -> Result<impl IntoResponse, StatusCode> {
+    let _ = get_current_semester(&state, &auth.session.tis_cookie, &auth.token)
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let compress = get_catalog(
         &state,
         &auth.session.tis_cookie,
