@@ -1,22 +1,21 @@
 use crate::{
-    api::extractor::AuthSession,
-    models::catalog::{CatalogRequest, Course},
-    services::catalog_service::get_catalog,
-    state::AppState,
+    api::extractor::AuthSession, models::catalog::CatalogRequest,
+    services::catalog_service::get_catalog, state::AppState,
 };
 use axum::{
-    Json,
     extract::{Query, State},
     http::StatusCode,
+    response::IntoResponse,
 };
-use std::{collections::HashMap, sync::Arc};
+use reqwest::header;
+use std::sync::Arc;
 
 pub async fn catalog_handler(
     State(state): State<Arc<AppState>>,
     auth: AuthSession,
     Query(payload): Query<CatalogRequest>,
-) -> Result<Json<HashMap<String, Course>>, StatusCode> {
-    let catalog = get_catalog(
+) -> Result<impl IntoResponse, StatusCode> {
+    let compress = get_catalog(
         &state,
         &auth.session.tis_cookie,
         &auth.token,
@@ -25,5 +24,10 @@ pub async fn catalog_handler(
     .await
     .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    Ok(Json(catalog))
+    let headers = [
+        (header::CONTENT_TYPE, "application/json"),
+        (header::CONTENT_ENCODING, "br"),
+    ];
+
+    Ok((headers, compress))
 }

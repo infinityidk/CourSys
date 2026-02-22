@@ -79,10 +79,12 @@ pub async fn get_current_semester(
     if let Some(old) = old_last
         && Some(&old) != valid.last()
     {
-        let mut catalog_cache = state.catalog_cache.write().await;
-        catalog_cache.remove(&old);
+        let mut compressed = state.compressed_catalog.write().await;
+        compressed.remove(&old);
+        let mut deps = state.dependencies_cache.write().await;
+        deps.remove(&old);
         tracing::info!(
-            "Semester changed, removed catalog cache for oldest semester: {}",
+            "Semester changed, removed caches for oldest semester: {}",
             old
         );
     }

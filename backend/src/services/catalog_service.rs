@@ -1,5 +1,6 @@
 use crate::models::catalog::{Class, Course, Dependency, Group, Leaf, Node, RawCourse, Slot};
 use crate::state::AppState;
+use crate::utils::compress::compress_catalog;
 use crate::utils::parser::{get_era, parse_info, parse_slots};
 use crate::utils::tis::{query_catalog_page, send_request};
 use anyhow::Context;
@@ -10,6 +11,7 @@ use serde_json::Value;
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
+use tokio::sync::Mutex;
 
 fn from_list(list: &[Value], by_code: &mut HashMap<String, Vec<RawCourse>>) -> anyhow::Result<()> {
     for item in list {
@@ -270,7 +272,7 @@ pub async fn get_catalog(
     cookie: &str,
     token: &str,
     semester: &str,
-) -> Result<HashMap<String, Course>, anyhow::Error> {
+) -> Result<Vec<u8>, anyhow::Error> {
     let is_latest = {
         let valid = state
             .semester_cache
@@ -288,7 +290,7 @@ pub async fn get_catalog(
 
     // fast path cache read
     {
-        let cache = state.catalog_cache.read().await;
+        let cache = state.compressed_catalog.read().await;
         if let Some((ts, data)) = cache.get(semester)
             && (!is_latest || ts.elapsed() < Duration::from_millis(500))
         {
@@ -296,11 +298,16 @@ pub async fn get_catalog(
         }
     }
 
-    let _guard = state.catalog_fetch_lock.lock().await;
+    let lock = state
+        .semester_locks
+        .entry(semester.to_string())
+        .or_insert_with(|| Arc::new(Mutex::new(())))
+        .clone();
+    let _guard = lock.lock().await;
 
     // double check cache
     {
-        let cache = state.catalog_cache.read().await;
+        let cache = state.compressed_catalog.read().await;
         if let Some((ts, data)) = cache.get(semester)
             && (!is_latest || ts.elapsed() < Duration::from_millis(500))
         {
@@ -309,19 +316,21 @@ pub async fn get_catalog(
     }
 
     let mut raw_data = fetch_catalog_full(state, cookie, token, semester).await?;
+    let old_data = state
+        .dependencies_cache
+        .read()
+        .await
+        .get(semester)
+        .cloned()
+        .unwrap_or_default();
 
-    let old_cache = {
-        let cache = state.catalog_cache.read().await;
-        cache.get(semester).cloned()
-    };
+    let mut new_deps: HashMap<String, Vec<Vec<Dependency>>> = HashMap::new();
 
     let mut tasks = Vec::new();
     for course in raw_data.values_mut() {
-        if let Some((_, old_data)) = &old_cache
-            && let Some(old_course) = old_data.get(&course.code)
-            && let Some(deps) = &old_course.dependencies
-        {
-            course.dependencies = Some(deps.clone());
+        if let Some(old_deps) = old_data.get(&course.code) {
+            course.dependencies = Some(old_deps.clone());
+            new_deps.insert(course.code.clone(), old_deps.clone());
             continue;
         }
         let id = course.id.clone();
@@ -338,6 +347,7 @@ pub async fn get_catalog(
                 Ok(deps) => {
                     if let Some(course) = raw_data.get_mut(&code) {
                         course.dependencies = Some(deps);
+                        new_deps.insert(code, course.dependencies.clone().unwrap());
                     }
                 }
                 Err(e) => {
@@ -347,8 +357,9 @@ pub async fn get_catalog(
         }
     }
 
-    let mut cache = state.catalog_cache.write().await;
-    cache.insert(semester.to_string(), (Instant::now(), raw_data.clone()));
+    let compressed = compress_catalog(&raw_data);
+    let mut comp_cache = state.compressed_catalog.write().await;
+    comp_cache.insert(semester.to_string(), (Instant::now(), compressed.clone()));
 
-    Ok(raw_data)
+    Ok(compressed)
 }

@@ -9,6 +9,8 @@ use axum::{
     routing::{get, post},
 };
 use std::sync::Arc;
+use tower_http::compression::CompressionLayer;
+use tower_http::compression::predicate::SizeAbove;
 
 pub fn create_router(state: Arc<AppState>) -> Router {
     Router::new()
@@ -19,5 +21,6 @@ pub fn create_router(state: Arc<AppState>) -> Router {
         .route("/api/grades", get(grades_handler))
         .route("/api/catalog", get(catalog_handler))
         .layer(DefaultBodyLimit::max(1024 * 10))
+        .layer(CompressionLayer::new().compress_when(SizeAbove::new(1024)))
         .with_state(state)
 }

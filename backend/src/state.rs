@@ -1,8 +1,10 @@
-use crate::models::catalog::Course;
+use crate::models::catalog::Dependency;
+use dashmap::DashMap;
 use redis::Client;
 use std::{collections::HashMap, sync::Arc, time::Instant};
 use tokio::sync::{Mutex, RwLock};
-type CatalogCache = Arc<RwLock<HashMap<String, (Instant, HashMap<String, Course>)>>>;
+type CompressedCatalog = Arc<RwLock<HashMap<String, (Instant, Vec<u8>)>>>;
+type DependenciesCache = Arc<RwLock<HashMap<String, HashMap<String, Vec<Vec<Dependency>>>>>>;
 
 #[derive(Clone)]
 pub struct SemesterInfo {
@@ -17,8 +19,9 @@ pub struct AppState {
     pub http_client: reqwest::Client,
     pub semester_cache: Arc<RwLock<Option<SemesterInfo>>>,
     pub meta_fetch_lock: Arc<Mutex<()>>,
-    pub catalog_cache: CatalogCache,
-    pub catalog_fetch_lock: Arc<Mutex<()>>,
+    pub compressed_catalog: CompressedCatalog,
+    pub dependencies_cache: DependenciesCache,
+    pub semester_locks: Arc<DashMap<String, Arc<Mutex<()>>>>,
 }
 
 impl AppState {
@@ -42,8 +45,9 @@ impl AppState {
             http_client,
             semester_cache: Arc::new(RwLock::new(None)),
             meta_fetch_lock: Arc::new(Mutex::new(())),
-            catalog_cache: Arc::new(RwLock::new(HashMap::new())),
-            catalog_fetch_lock: Arc::new(Mutex::new(())),
+            compressed_catalog: Arc::new(RwLock::new(HashMap::new())),
+            dependencies_cache: Arc::new(RwLock::new(HashMap::new())),
+            semester_locks: Arc::new(DashMap::new()),
         })
     }
 }
