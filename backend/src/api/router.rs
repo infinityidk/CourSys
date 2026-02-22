@@ -28,7 +28,7 @@ pub fn create_router(state: Arc<AppState>) -> Router {
         .route("/api/user/info", get(user_info_handler))
         .route("/api/grades", get(grades_handler))
         .route("/api/catalog", get(catalog_handler))
-        .route("/api/syllabus/:code", get(syllabus_handler))
+        .route("/api/syllabus/{code}", get(syllabus_handler))
         .route("/api/schedule", get(schedule_handler))
         .route("/api/update", post(update_handler))
         .route("/api/select", post(select_handler))

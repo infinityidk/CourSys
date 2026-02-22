@@ -46,7 +46,12 @@ pub async fn perform_cas_login(
         ("_eventId", "submit"),
     ];
 
-    login_client.post(login_url).form(&params).send().await?;
+    login_client
+        .post(login_url)
+        .header("Referer", login_url)
+        .form(&params)
+        .send()
+        .await?;
 
     drop(payload);
 

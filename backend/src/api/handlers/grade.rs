@@ -1,6 +1,6 @@
 use crate::{
     api::extractor::AuthSession,
-    models::grade::{GradeItem, GradeRequest},
+    models::grade::{GradeRequest, GradeResponse},
     services::crawler_service::fetch_grades,
     state::AppState,
 };
@@ -15,7 +15,7 @@ pub async fn grades_handler(
     State(state): State<Arc<AppState>>,
     auth: AuthSession,
     Query(payload): Query<GradeRequest>,
-) -> Result<Json<Vec<GradeItem>>, StatusCode> {
+) -> Result<Json<Vec<GradeResponse>>, StatusCode> {
     let grades = fetch_grades(
         &state,
         &auth.session.tis_cookie,

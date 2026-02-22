@@ -1,5 +1,5 @@
-use crate::models::grade::GradeItem;
-use crate::models::user::UserInfoResponse;
+use crate::models::grade::{GradeItem, GradeResponse};
+use crate::models::user::{UserInfoRequest, UserInfoResponse};
 use crate::state::AppState;
 use crate::utils::tis::{send_request, validate_tis_response};
 use anyhow::Context;
@@ -40,7 +40,14 @@ pub async fn fetch_user_info(
     )
     .await?;
 
-    serde_json::from_value::<UserInfoResponse>(tis_data).context("Failed to fetch user info")
+    let info =
+        serde_json::from_value::<UserInfoRequest>(tis_data).context("Failed to fetch user info")?;
+    Ok(UserInfoResponse {
+        level: info.level,
+        grade: info.grade,
+        department: info.department,
+        major: info.major,
+    })
 }
 
 pub async fn fetch_grades(
@@ -48,7 +55,7 @@ pub async fn fetch_grades(
     cookie: &str,
     token: &str,
     level: &str,
-) -> Result<Vec<GradeItem>, anyhow::Error> {
+) -> Result<Vec<GradeResponse>, anyhow::Error> {
     let payload = serde_json::json!({
         "pylx": level,
         "current": 1,
@@ -66,8 +73,23 @@ pub async fn fetch_grades(
     )
     .await?;
 
-    Ok(
-        serde_json::from_value::<Vec<GradeItem>>(tis_data["content"]["list"].clone())
-            .unwrap_or_default(),
-    )
+    let item = serde_json::from_value::<Vec<GradeItem>>(tis_data["content"]["list"].clone())
+        .unwrap_or_default();
+    let mut res = Vec::new();
+    for i in item {
+        res.push(GradeResponse {
+            code: i.code,
+            name: i.name,
+            score: i.score,
+            grade: i.grade,
+            semester: i.semester,
+            nature: i.nature,
+            category: i.category,
+            credits: i.credits,
+            department: i.department,
+            ranking: i.ranking,
+            students: i.students,
+        });
+    }
+    Ok(res)
 }

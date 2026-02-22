@@ -61,7 +61,7 @@ pub async fn schedule_handler(
                     Some((item.seq.as_bytes()[3] - b'A' + 1).to_string()),
                 )
             } else {
-                (item.seq.clone(), None)
+                (item.seq[1..3].to_string(), None)
             };
             ScheduleResponse {
                 class,

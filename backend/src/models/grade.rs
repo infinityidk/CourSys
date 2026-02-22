@@ -7,8 +7,7 @@ pub struct GradeRequest {
     pub level: String,
 }
 
-#[derive(Debug, Serialize, Deserialize, TS)]
-#[ts(export, export_to = "../../frontend/src/bindings/GradeItem.ts")]
+#[derive(Debug, Deserialize)]
 pub struct GradeItem {
     #[serde(rename = "kcdm")]
     pub code: String,
@@ -21,7 +20,7 @@ pub struct GradeItem {
     #[serde(rename = "xnxq")]
     pub semester: String,
     #[serde(rename = "kcxz")]
-    pub nature: String,
+    pub nature: Option<String>,
     #[serde(rename = "kclb")]
     pub category: String,
     #[serde(rename = "xf")]
@@ -31,5 +30,21 @@ pub struct GradeItem {
     #[serde(rename = "pm")]
     pub ranking: Option<String>,
     #[serde(rename = "zrs")]
+    pub students: String,
+}
+
+#[derive(Debug, Serialize, TS)]
+#[ts(export, export_to = "../../frontend/src/bindings/GradeResponse.ts")]
+pub struct GradeResponse {
+    pub code: String,
+    pub name: String,
+    pub score: String,
+    pub grade: String,
+    pub semester: String,
+    pub nature: Option<String>,
+    pub category: String,
+    pub credits: f64,
+    pub department: String,
+    pub ranking: Option<String>,
     pub students: String,
 }
