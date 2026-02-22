@@ -44,9 +44,7 @@ pub async fn quit_handler(
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
 
-    if let Some(jg) = json.get("jg").and_then(|v| v.as_str())
-        && jg == "1"
-    {
+    if json.get("jg").and_then(|v| v.as_str()) == Some("1") {
         Ok(StatusCode::OK)
     } else {
         Err(StatusCode::BAD_REQUEST)
