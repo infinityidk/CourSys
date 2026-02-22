@@ -43,7 +43,7 @@ pub async fn query_catalog_page(
     token: &str,
     year: &str,
     season: &str,
-    page_num: i32,
+    page_num: i64,
     page_size: i32,
 ) -> Result<serde_json::Value, anyhow::Error> {
     let payload = [

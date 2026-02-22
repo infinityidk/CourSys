@@ -10,12 +10,12 @@ pub async fn keep_alive(
     cookie: &str,
     token: &str,
 ) -> Result<(), anyhow::Error> {
-    let req = state
+    let res = state
         .http_client
         .post("https://tis.sustech.edu.cn/component/online")
-        .header(reqwest::header::COOKIE, cookie);
-
-    let res = req.send().await?;
+        .header(reqwest::header::COOKIE, cookie)
+        .send()
+        .await?;
 
     let _ = validate_tis_response(res, token, state)
         .await
@@ -29,21 +29,19 @@ pub async fn fetch_user_info(
     cookie: &str,
     token: &str,
 ) -> Result<UserInfoResponse, anyhow::Error> {
-    let req = state
+    let res = state
         .http_client
         .post("https://tis.sustech.edu.cn/UserManager/queryxsxx")
-        .header(reqwest::header::COOKIE, cookie);
-
-    let res = req.send().await?;
+        .header(reqwest::header::COOKIE, cookie)
+        .send()
+        .await?;
     let validated_res = validate_tis_response(res, token, state)
         .await
         .map_err(|e| anyhow::anyhow!("Validation failed: {}", e))?;
 
     let tis_data: serde_json::Value = serde_json::from_str(&validated_res)?;
-    let user_info = serde_json::from_value::<UserInfoResponse>(tis_data)
-        .context("Failed to fetch user info")?;
 
-    Ok(user_info)
+    serde_json::from_value::<UserInfoResponse>(tis_data).context("Failed to fetch user info")
 }
 
 pub async fn fetch_grades(
@@ -58,24 +56,21 @@ pub async fn fetch_grades(
         "pageSize": 1000,
     });
 
-    let req = state
+    let res = state
         .http_client
         .post("https://tis.sustech.edu.cn/cjgl/grcjcx/grcjcx")
         .header(reqwest::header::COOKIE, cookie)
-        .json(&payload);
-
-    let res = req.send().await?;
+        .json(&payload)
+        .send()
+        .await?;
     let validated_res = validate_tis_response(res, token, state)
         .await
         .map_err(|e| anyhow::anyhow!("Validation failed: {}", e))?;
 
     let tis_data: serde_json::Value = serde_json::from_str(&validated_res)?;
 
-    let parsed_grades = tis_data
-        .get("content")
-        .and_then(|c| c.get("list"))
-        .and_then(|l| serde_json::from_value::<Vec<GradeItem>>(l.clone()).ok())
-        .unwrap_or_default();
-
-    Ok(parsed_grades)
+    Ok(
+        serde_json::from_value::<Vec<GradeItem>>(tis_data["content"]["list"].clone())
+            .unwrap_or_default(),
+    )
 }

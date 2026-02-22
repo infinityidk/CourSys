@@ -9,13 +9,13 @@ use axum::{
     extract::{Query, State},
     http::StatusCode,
 };
-use std::sync::Arc;
+use std::{collections::HashMap, sync::Arc};
 
 pub async fn catalog_handler(
     State(state): State<Arc<AppState>>,
     auth: AuthSession,
     Query(payload): Query<CatalogRequest>,
-) -> Result<Json<Vec<Course>>, StatusCode> {
+) -> Result<Json<HashMap<String, Course>>, StatusCode> {
     let catalog = get_catalog(
         &state,
         &auth.session.tis_cookie,

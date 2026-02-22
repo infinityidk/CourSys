@@ -6,6 +6,8 @@ static SLOT_REGEX: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r"([\d\-,]+)(周|单周|双周),星期([一二三四五六日])第(\d+(?:-\d+)?)节\s+([^<]+)")
         .unwrap()
 });
+static INFO_REGEX: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"选课要求:([\s\S]*?)</p>").unwrap());
 
 pub fn get_era(code: Option<&str>, level: Option<&str>) -> String {
     if level == Some("2") {
@@ -16,6 +18,12 @@ pub fn get_era(code: Option<&str>, level: Option<&str>) -> String {
         .filter(|&ch| ('1'..='5').contains(&ch))
         .map(|ch| ch.to_string())
         .unwrap_or_else(|| "O".to_string())
+}
+
+pub fn parse_info(text: &str) -> Option<String> {
+    INFO_REGEX
+        .captures(text)
+        .and_then(|caps| caps.get(1).map(|m| m.as_str().trim().to_string()))
 }
 
 pub fn parse_slots(html: Option<&str>) -> Vec<Slot> {

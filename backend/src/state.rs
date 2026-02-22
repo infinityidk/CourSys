@@ -2,7 +2,7 @@ use crate::models::catalog::Course;
 use redis::Client;
 use std::{collections::HashMap, sync::Arc, time::Instant};
 use tokio::sync::{Mutex, RwLock};
-type CatalogCache = Arc<RwLock<HashMap<String, (Instant, Vec<Course>)>>>;
+type CatalogCache = Arc<RwLock<HashMap<String, (Instant, HashMap<String, Course>)>>>;
 
 #[derive(Clone)]
 pub struct SemesterInfo {

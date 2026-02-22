@@ -8,53 +8,71 @@ pub struct CatalogRequest {
 }
 
 #[derive(Debug, Clone, Deserialize)]
-pub struct RawTisCourse {
-    #[serde(alias = "kxh")]
+pub struct RawCourse {
+    #[serde(rename = "kxh")]
     pub seq: String,
-    #[serde(alias = "pylx")]
+    #[serde(rename = "pylx")]
     pub level: String,
-    #[serde(alias = "kcdm")]
+    #[serde(rename = "kcdm")]
     pub code: String,
-    #[serde(alias = "kcmc")]
+    #[serde(rename = "kcmc")]
     pub name: String,
-    #[serde(alias = "xf")]
+    #[serde(rename = "xf")]
     pub credits: String,
-    #[serde(alias = "kclbmc")]
+    #[serde(rename = "kclbmc")]
     pub category: String,
-    #[serde(alias = "kcxzmc")]
+    #[serde(rename = "kcxzmc")]
     pub nature: String,
-    #[serde(alias = "kkyxmc")]
+    #[serde(rename = "kkyxmc")]
     pub department: String,
-    #[serde(alias = "kcid")]
+    #[serde(rename = "kcid")]
     pub course_id: String,
-    #[serde(alias = "dgjsmc")]
+    #[serde(rename = "dgjsmc")]
     pub teacher: Option<String>,
-    #[serde(alias = "pkjgmx")]
+    #[serde(rename = "pkjgmx")]
     pub slots: String,
-    #[serde(alias = "skyymc")]
+    #[serde(rename = "skyymc")]
     pub language: String,
-    #[serde(alias = "mxdx")]
+    #[serde(rename = "mxdx")]
     pub allowed: Option<String>,
-    #[serde(alias = "jzdx")]
+    #[serde(rename = "jzdx")]
     pub denied: Option<String>,
-    #[serde(alias = "kcxx")]
+    #[serde(rename = "kcxx")]
     pub info: String,
-    #[serde(alias = "id")]
+    #[serde(rename = "id")]
     pub id: String,
-    #[serde(alias = "bksyxrs")]
+    #[serde(rename = "bksyxrs")]
     pub undergraduate_number: String,
-    #[serde(alias = "yjsyxrs")]
+    #[serde(rename = "yjsyxrs")]
     pub graduate_number: String,
-    #[serde(alias = "nansyxrs")]
+    #[serde(rename = "nansyxrs")]
     pub male_number: String,
-    #[serde(alias = "nvsyxrs")]
+    #[serde(rename = "nvsyxrs")]
     pub female_number: String,
-    #[serde(alias = "bksrl")]
+    #[serde(rename = "bksrl")]
     pub undergraduate_capacity: String,
-    #[serde(alias = "yjsrl")]
+    #[serde(rename = "yjsrl")]
     pub graduate_capacity: String,
-    #[serde(alias = "jszws")]
+    #[serde(rename = "jszws")]
     pub seats: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct Leaf {
+    #[serde(rename = "kzdm")]
+    pub group_code: String,
+    #[serde(rename = "kcdm")]
+    pub code: String,
+    #[serde(rename = "kcmc")]
+    pub name: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct Node {
+    #[serde(rename = "kzdm")]
+    pub group_code: String,
+    #[serde(rename = "yqzkzs")]
+    pub relation: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, TS, PartialEq, Eq, Hash)]
@@ -114,5 +132,5 @@ pub struct Course {
     pub dependencies: Option<Vec<Vec<Dependency>>>,
     pub classes: Vec<Class>,
     #[serde(skip_serializing)]
-    pub course_id: String,
+    pub id: String,
 }

@@ -4,12 +4,12 @@ use ts_rs::TS;
 #[derive(Debug, Serialize, Deserialize, TS)]
 #[ts(export, export_to = "../../frontend/src/bindings/UserInfoResponse.ts")]
 pub struct UserInfoResponse {
-    #[serde(alias = "PYLX")]
+    #[serde(rename = "PYLX")]
     pub level: String,
-    #[serde(alias = "NJMC")]
+    #[serde(rename = "NJMC")]
     pub grade: String,
-    #[serde(alias = "YXMC")]
+    #[serde(rename = "YXMC")]
     pub department: String,
-    #[serde(alias = "ZYMC")]
+    #[serde(rename = "ZYMC")]
     pub major: String,
 }

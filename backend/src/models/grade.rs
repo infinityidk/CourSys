@@ -10,26 +10,26 @@ pub struct GradeRequest {
 #[derive(Debug, Serialize, Deserialize, TS)]
 #[ts(export, export_to = "../../frontend/src/bindings/GradeItem.ts")]
 pub struct GradeItem {
-    #[serde(alias = "kcdm")]
+    #[serde(rename = "kcdm")]
     pub code: String,
-    #[serde(alias = "kcmc")]
+    #[serde(rename = "kcmc")]
     pub name: String,
-    #[serde(alias = "zzcj")]
+    #[serde(rename = "zzcj")]
     pub score: String,
-    #[serde(alias = "xscj")]
+    #[serde(rename = "xscj")]
     pub grade: String,
-    #[serde(alias = "xnxq")]
+    #[serde(rename = "xnxq")]
     pub semester: String,
-    #[serde(alias = "kcxz")]
+    #[serde(rename = "kcxz")]
     pub nature: String,
-    #[serde(alias = "kclb")]
+    #[serde(rename = "kclb")]
     pub category: String,
-    #[serde(alias = "xf")]
+    #[serde(rename = "xf")]
     pub credits: f64,
-    #[serde(alias = "yxmc")]
+    #[serde(rename = "yxmc")]
     pub department: String,
-    #[serde(alias = "pm")]
+    #[serde(rename = "pm")]
     pub ranking: Option<String>,
-    #[serde(alias = "zrs")]
+    #[serde(rename = "zrs")]
     pub students: String,
 }
