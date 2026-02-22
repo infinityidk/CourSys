@@ -81,8 +81,8 @@ pub async fn get_current_semester(
     {
         let mut compressed = state.compressed_catalog.write().await;
         compressed.remove(&old);
-        let mut deps = state.dependencies_cache.write().await;
-        deps.remove(&old);
+        let mut info = state.catalog_info_cache.write().await;
+        info.remove(&old);
         tracing::info!(
             "Semester changed, removed caches for oldest semester: {}",
             old

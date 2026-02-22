@@ -4,7 +4,8 @@ use redis::Client;
 use std::{collections::HashMap, sync::Arc, time::Instant};
 use tokio::sync::{Mutex, RwLock};
 type CompressedCatalog = Arc<RwLock<HashMap<String, (Instant, Vec<u8>)>>>;
-type DependenciesCache = Arc<RwLock<HashMap<String, HashMap<String, Vec<Vec<Dependency>>>>>>;
+type CatalogInfoCache =
+    Arc<RwLock<HashMap<String, HashMap<String, (String, Option<Vec<Vec<Dependency>>>)>>>>;
 
 #[derive(Clone)]
 pub struct SemesterInfo {
@@ -20,8 +21,9 @@ pub struct AppState {
     pub semester_cache: Arc<RwLock<Option<SemesterInfo>>>,
     pub meta_fetch_lock: Arc<Mutex<()>>,
     pub compressed_catalog: CompressedCatalog,
-    pub dependencies_cache: DependenciesCache,
+    pub catalog_info_cache: CatalogInfoCache,
     pub semester_locks: Arc<DashMap<String, Arc<Mutex<()>>>>,
+    pub last_update_request: Arc<Mutex<Option<Instant>>>,
 }
 
 impl AppState {
@@ -46,8 +48,9 @@ impl AppState {
             semester_cache: Arc::new(RwLock::new(None)),
             meta_fetch_lock: Arc::new(Mutex::new(())),
             compressed_catalog: Arc::new(RwLock::new(HashMap::new())),
-            dependencies_cache: Arc::new(RwLock::new(HashMap::new())),
+            catalog_info_cache: Arc::new(RwLock::new(HashMap::new())),
             semester_locks: Arc::new(DashMap::new()),
+            last_update_request: Arc::new(Mutex::new(None)),
         })
     }
 }

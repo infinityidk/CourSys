@@ -12,6 +12,7 @@ use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tokio::sync::Mutex;
+type CatalogInfo = HashMap<String, (String, Option<Vec<Vec<Dependency>>>)>;
 
 fn from_list(list: &[Value], by_code: &mut HashMap<String, Vec<RawCourse>>) -> anyhow::Result<()> {
     for item in list {
@@ -174,7 +175,7 @@ async fn fetch_catalog_full(
         let mut by_class_num: HashMap<String, Vec<&RawCourse>> = HashMap::new();
         for raw in &raws {
             by_class_num
-                .entry(raw.seq[..3].to_string())
+                .entry(raw.seq[1..3].to_string())
                 .or_default()
                 .push(raw);
         }
@@ -216,7 +217,7 @@ async fn fetch_catalog_full(
                     undergraduate_capacity: raw.undergraduate_capacity.clone(),
                     graduate_capacity: raw.graduate_capacity.clone(),
                     seats: raw.seats.clone(),
-                    slots: Some(group_slots),
+                    slots: group_slots,
                 });
             }
             if groups.is_empty() {
@@ -231,7 +232,7 @@ async fn fetch_catalog_full(
                     undergraduate_capacity: class_raw.undergraduate_capacity.clone(),
                     graduate_capacity: class_raw.graduate_capacity.clone(),
                     seats: class_raw.seats.clone(),
-                    slots: None,
+                    slots: Vec::new(),
                 });
             }
             let class = Class {
@@ -241,7 +242,7 @@ async fn fetch_catalog_full(
                 allowed: class_raw.allowed.clone(),
                 denied: class_raw.denied.clone(),
                 info: parse_info(&class_raw.info),
-                slots: Some(class_slots),
+                slots: class_slots,
                 groups,
             };
             classes.push(class);
@@ -317,20 +318,23 @@ pub async fn get_catalog(
 
     let mut raw_data = fetch_catalog_full(state, cookie, token, semester).await?;
     let old_data = state
-        .dependencies_cache
+        .catalog_info_cache
         .read()
         .await
         .get(semester)
         .cloned()
         .unwrap_or_default();
 
-    let mut new_deps: HashMap<String, Vec<Vec<Dependency>>> = HashMap::new();
+    let mut new_info: CatalogInfo = HashMap::new();
 
     let mut tasks = Vec::new();
     for course in raw_data.values_mut() {
-        if let Some(old_deps) = old_data.get(&course.code) {
+        if let Some((_, Some(old_deps))) = old_data.get(&course.code) {
             course.dependencies = Some(old_deps.clone());
-            new_deps.insert(course.code.clone(), old_deps.clone());
+            new_info.insert(
+                course.code.clone(),
+                (course.id.clone(), course.dependencies.clone()),
+            );
             continue;
         }
         let id = course.id.clone();
@@ -347,7 +351,7 @@ pub async fn get_catalog(
                 Ok(deps) => {
                     if let Some(course) = raw_data.get_mut(&code) {
                         course.dependencies = Some(deps);
-                        new_deps.insert(code, course.dependencies.clone().unwrap());
+                        new_info.insert(code, (course.id.clone(), course.dependencies.clone()));
                     }
                 }
                 Err(e) => {
@@ -357,6 +361,11 @@ pub async fn get_catalog(
         }
     }
 
+    state
+        .catalog_info_cache
+        .write()
+        .await
+        .insert(semester.to_string(), new_info);
     let compressed = compress_catalog(&raw_data);
     let mut comp_cache = state.compressed_catalog.write().await;
     comp_cache.insert(semester.to_string(), (Instant::now(), compressed.clone()));

@@ -22,7 +22,7 @@ pub struct RawCourse {
     #[serde(rename = "kclbmc")]
     pub category: String,
     #[serde(rename = "kcxzmc")]
-    pub nature: String,
+    pub nature: Option<String>,
     #[serde(rename = "kkyxmc")]
     pub department: String,
     #[serde(rename = "kcid")]
@@ -97,7 +97,7 @@ pub struct Group {
     pub undergraduate_capacity: String,
     pub graduate_capacity: String,
     pub seats: Option<String>,
-    pub slots: Option<Vec<Slot>>,
+    pub slots: Vec<Slot>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, TS)]
@@ -109,7 +109,7 @@ pub struct Class {
     pub allowed: Option<String>,
     pub denied: Option<String>,
     pub info: Option<String>,
-    pub slots: Option<Vec<Slot>>,
+    pub slots: Vec<Slot>,
     pub groups: Vec<Group>,
 }
 #[derive(Debug, Clone, Serialize, Deserialize, TS)]
@@ -127,7 +127,7 @@ pub struct Course {
     pub name: String,
     pub credits: String,
     pub category: String,
-    pub nature: String,
+    pub nature: Option<String>,
     pub department: String,
     pub dependencies: Option<Vec<Vec<Dependency>>>,
     pub classes: Vec<Class>,
