@@ -4,8 +4,7 @@ use std::sync::Arc;
 use tracing::error;
 
 use crate::{
-    api::extractor::AuthSession, models::actions::SelectRequest, state::AppState,
-    utils::tis::send_request,
+    api::extractor::AuthSession, models::actions::SelectRequest, services::meta_service::get_current_semester, state::AppState, utils::tis::send_request
 };
 
 pub async fn select_handler(
@@ -13,13 +12,9 @@ pub async fn select_handler(
     auth: AuthSession,
     Form(payload): Form<SelectRequest>,
 ) -> Result<StatusCode, StatusCode> {
-    let semester = {
-        let semester_cache = state.semester_cache.read().await;
-        let info = semester_cache
-            .as_ref()
-            .ok_or(StatusCode::INTERNAL_SERVER_ERROR)?;
-        info.current.clone()
-    };
+    let semester = get_current_semester(&state, &auth.session.tis_cookie, &auth.token)
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let (year, season) = semester.split_at(9);
 
     let form_data = vec![

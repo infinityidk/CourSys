@@ -1,6 +1,7 @@
 use crate::api::extractor::AuthSession;
 use crate::models::update::UpdateRequest;
 use crate::services::crawler_service::keep_alive;
+use crate::services::meta_service::get_current_semester;
 use crate::state::AppState;
 use axum::{Json, extract::State, http::StatusCode};
 use std::sync::Arc;
@@ -28,13 +29,9 @@ pub async fn update_handler(
     *last_update = Some(now);
     drop(last_update);
 
-    let semester = {
-        let semester_cache = state.semester_cache.read().await;
-        let info = semester_cache
-            .as_ref()
-            .ok_or(StatusCode::INTERNAL_SERVER_ERROR)?;
-        info.current.clone()
-    };
+    let semester = get_current_semester(&state, &auth.session.tis_cookie, &auth.token)
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     let mut info_cache = state.catalog_info_cache.write().await;
     if let Some(courses) = info_cache.get_mut(&semester)

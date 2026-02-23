@@ -27,7 +27,10 @@ pub async fn catalog_handler(
         &payload.semester,
     )
     .await
-    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    .map_err(|e| {
+        tracing::error!("Catalog fetch failed: {:#}", e);
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
 
     let headers = [
         (header::CONTENT_TYPE, "application/json"),

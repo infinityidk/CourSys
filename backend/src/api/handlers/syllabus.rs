@@ -7,27 +7,32 @@ use axum::{
 use std::sync::Arc;
 use tracing::error;
 
-use crate::{api::extractor::AuthSession, services::crawler_service::keep_alive, state::AppState};
+use crate::{
+    api::extractor::AuthSession,
+    services::{catalog_service::get_catalog, meta_service::get_current_semester},
+    state::AppState,
+};
 
 pub async fn syllabus_handler(
     State(state): State<Arc<AppState>>,
     auth: AuthSession,
     Path(code): Path<String>,
 ) -> Result<impl IntoResponse, StatusCode> {
-    if keep_alive(&state, &auth.session.tis_cookie, &auth.token)
+    let semester = get_current_semester(&state, &auth.session.tis_cookie, &auth.token)
         .await
-        .is_err()
-    {
-        return Err(StatusCode::UNAUTHORIZED);
-    }
-
-    let semester = {
-        let semester_cache = state.semester_cache.read().await;
-        let info = semester_cache
-            .as_ref()
-            .ok_or(StatusCode::INTERNAL_SERVER_ERROR)?;
-        info.current.clone()
-    };
+        .map_err(|e| {
+            error!("Failed to get current semester: {}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+    let _ = get_catalog(&state, &auth.session.tis_cookie, &auth.token, &semester)
+        .await
+        .map_err(|e| {
+            error!(
+                "Failed to refresh catalog for current semester {}: {}",
+                semester, e
+            );
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
 
     let course_id = {
         let info_cache = state.catalog_info_cache.read().await;
@@ -59,7 +64,11 @@ pub async fn syllabus_handler(
         .and_then(|v| v.to_str().ok())
         .unwrap_or("");
 
-    if status != 200 || !content_type.contains("pdf") {
+    if status != 200 || content_type.contains("json") {
+        error!(
+            "Failed to get {}'s syllabus from TIS: status {}, content type {}",
+            code, status, content_type
+        );
         return Err(StatusCode::NOT_FOUND);
     }
 
