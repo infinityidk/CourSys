@@ -32,6 +32,7 @@ export default function Timetable() {
   const totalCoin = data?.[0] || '0'
   const usedCoin = useMemo(() => courses.reduce((a, c) => a + Number(c.coin || 0), 0), [courses])
   const remainCoin = Number(totalCoin) - usedCoin
+  const totalCredits = useMemo(() => courses.reduce((a, c) => a + Number(c.credits || 0), 0), [courses])
 
   const categories = useMemo(() => {
     const s = new Set(courses.map(c => c.category))
@@ -60,7 +61,10 @@ export default function Timetable() {
     <div className="h-full overflow-y-auto custom-scrollbar">
       <div className="space-y-6 p-1">
         {/* Coins display */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4 flex-wrap">
+          <div className="text-white font-mono text-sm font-bold bg-zinc-900 px-4 py-2 rounded-xl border border-zinc-800">
+            总学分: {totalCredits}
+          </div>
           <div className="text-blue-500 font-mono text-sm font-bold bg-blue-950/30 px-4 py-2 rounded-xl border border-blue-900/50">
             学分币: {totalCoin}
           </div>

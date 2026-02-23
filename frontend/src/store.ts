@@ -73,15 +73,20 @@ export const useStore = create<AppState>((set) => ({
         return { cart: c }
     }),
 
-    toggleCartOption: (code, name, opt) => set(s => {
+    toggleCartOption: (_code, _name, opt) => set(s => {
         const c = { ...s.cart }
-        if (!c[code]) c[code] = { id: code, name, target: 1, options: [opt] }
-        else {
-            const exists = c[code].options.some(o => o.id === opt.id)
-            if (exists) c[code].options = c[code].options.filter(o => o.id !== opt.id)
-            else c[code].options.push(opt)
-            if (c[code].options.length === 0) delete c[code]
+        // Find which group actually contains this option
+        for (const key of Object.keys(c)) {
+            const idx = c[key].options.findIndex(o => o.id === opt.id)
+            if (idx !== -1) {
+                c[key] = { ...c[key], options: c[key].options.filter(o => o.id !== opt.id) }
+                if (c[key].options.length === 0) delete c[key]
+                return { cart: c }
+            }
         }
+        // Not found anywhere, should not happen for toggle-remove, but add as fallback
+        if (!c[_code]) c[_code] = { id: _code, name: _name, target: 1, options: [opt] }
+        else c[_code].options.push(opt)
         return { cart: c }
     }),
 

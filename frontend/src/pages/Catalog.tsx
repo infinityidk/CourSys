@@ -132,10 +132,23 @@ function AddCourseButton({ c }: { c: Course }) {
   )
 }
 
+// Conflict detection helper for filtering
+function isGroupDead(cls: Class, g: Group, cart: any, solutions: any[], validIds: Set<string>): boolean {
+  const cartKeys = Object.keys(cart)
+  if (cartKeys.length === 0) return false
+  const inCart = Object.values(cart).some((cg: any) => cg.options.some((o: any) => o.id === g.id))
+  if (inCart) return solutions.length > 0 && !validIds.has(g.id)
+  if (solutions.length === 0 && cartKeys.length > 0) return true
+  if (solutions.length > 0) {
+    const gMask = createMask([...(cls.slots || []), ...(g.slots || [])])
+    return solutions.every((sol: any) => hasConflict(sol.mask, gMask))
+  }
+  return false
+}
+
 const CourseCard = memo(({ c, cart, validIds, solutions, selectMut, updateMut }: {
   c: Course, cart: any, validIds: Set<string>, solutions: any[], selectMut: any, updateMut: any
 }) => {
-  const cartKeys = Object.keys(cart)
 
   return (
     <div className="bg-zinc-950 border-2 border-zinc-900 rounded-3xl overflow-hidden shadow-2xl transition-all duration-300 w-full h-fit hover:border-zinc-700">
@@ -169,7 +182,6 @@ const CourseCard = memo(({ c, cart, validIds, solutions, selectMut, updateMut }:
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="w-3 h-3"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
               <span className="group-hover/link:underline">大纲</span>
             </a>
-            <button onClick={() => updateMut.mutate(c.code)} disabled={updateMut.isPending} className="text-zinc-500 hover:text-blue-400 text-[10px] font-bold disabled:opacity-30">↻ 刷新</button>
           </div>
         </div>
 
@@ -178,6 +190,7 @@ const CourseCard = memo(({ c, cart, validIds, solutions, selectMut, updateMut }:
           <div className="mt-2 pt-3 border-t border-dashed border-zinc-700/30 space-y-1.5">
             <div className="text-[10px] font-black text-amber-500 uppercase tracking-wider flex items-center gap-1">
               <div className="w-1.5 h-1.5 rounded-full bg-amber-500" />先修要求
+              <button onClick={() => updateMut.mutate(c.code)} disabled={updateMut.isPending} className="ml-auto text-zinc-500 hover:text-blue-400 text-[10px] font-bold disabled:opacity-30">↻ 刷新</button>
             </div>
             <div className="flex flex-col gap-1 pl-1">
               {c.dependencies.map((group, idx) => (
@@ -222,20 +235,8 @@ const CourseCard = memo(({ c, cart, validIds, solutions, selectMut, updateMut }:
               <div className="flex flex-col gap-2">
                 {cls.groups.map((g) => {
                   const inCart = Object.values(cart).some((cg: any) => cg.options.some((o: any) => o.id === g.id))
-
-                  // Conflict detection
-                  let isDead = false
-                  if (cartKeys.length > 0) {
-                    if (inCart) {
-                      isDead = solutions.length > 0 && !validIds.has(g.id)
-                    } else {
-                      if (solutions.length === 0 && cartKeys.length > 0) isDead = true
-                      else if (solutions.length > 0) {
-                        const gMask = createMask([...(cls.slots || []), ...(g.slots || [])])
-                        isDead = solutions.every((sol: any) => hasConflict(sol.mask, gMask))
-                      }
-                    }
-                  }
+                  const isDead = isGroupDead(cls, g, cart, solutions, validIds)
+                  const isSingleGroup = g.seq === '0'
 
                   const baseClass = inCart ? 'bg-blue-900/20 border-blue-500/50 hover:bg-blue-900/30'
                     : isDead ? 'bg-red-950/10 border-red-900/30 opacity-60'
@@ -243,16 +244,19 @@ const CourseCard = memo(({ c, cart, validIds, solutions, selectMut, updateMut }:
 
                   return (
                     <div key={g.id} className={`group flex flex-col border rounded-xl p-3 transition-all ${baseClass}`}>
-                      <div className="flex justify-between items-center mb-2 pb-2 border-b border-zinc-800/50">
+                      {/* Header row: show group name only if seq != 0 */}
+                      <div className={`flex justify-between items-center ${isSingleGroup ? '' : 'mb-2 pb-2 border-b border-zinc-800/50'}`}>
                         <div className="flex items-center gap-2 overflow-hidden">
-                          <span className={`text-xs font-bold truncate transition-colors ${isDead && !inCart ? "text-red-400 line-through" : inCart ? "text-blue-300" : "text-zinc-300 group-hover:text-blue-400"}`}>
-                            组 {g.seq}
-                          </span>
+                          {!isSingleGroup && (
+                            <span className={`text-xs font-bold truncate transition-colors ${isDead && !inCart ? 'text-red-400 line-through' : inCart ? 'text-blue-300' : 'text-zinc-300 group-hover:text-blue-400'}`}>
+                              组 {g.seq}
+                            </span>
+                          )}
                           {g.teacher && <span className="text-[10px] text-zinc-500 truncate">{g.teacher}</span>}
+                          {isDead && <span className="text-[9px] font-black text-red-500 px-1">冲突</span>}
                         </div>
                         <div className="flex gap-2 items-center shrink-0">
-                          {isDead && <span className="text-[9px] font-black text-red-500 px-1">冲突</span>}
-                          <AddToGroupButton courseCode={c.code} courseName={c.name} cls={cls} g={g} />
+                          {!isSingleGroup && <AddToGroupButton courseCode={c.code} courseName={c.name} cls={cls} g={g} />}
                           <button
                             onClick={() => {
                               const coin = prompt('输入学分币 (0 = 不投币)', '0')
@@ -265,8 +269,9 @@ const CourseCard = memo(({ c, cart, validIds, solutions, selectMut, updateMut }:
                           </button>
                         </div>
                       </div>
+                      {/* Info row */}
                       <div className="flex flex-wrap gap-x-3 gap-y-1 text-[9px] font-mono text-zinc-600">
-                        <span className={Number(g.undergraduate_capacity) - Number(g.undergraduate_number) <= 0 ? "text-red-500" : "text-emerald-500"}>本: {g.undergraduate_number}/{g.undergraduate_capacity}</span>
+                        <span className={Number(g.undergraduate_capacity) - Number(g.undergraduate_number) <= 0 ? 'text-red-500' : 'text-emerald-500'}>本: {g.undergraduate_number}/{g.undergraduate_capacity}</span>
                         <span>研: {g.graduate_number}/{g.graduate_capacity}</span>
                         <span>男/女: {g.male_number}/{g.female_number}</span>
                         {g.seats && <span>座: {g.seats}</span>}
@@ -348,6 +353,7 @@ export default function Catalog({ searchTerm, showFilters }: { searchTerm: strin
 
   // Filters
   const [hideForbidden, setHideForbidden] = useState(false)
+  const [hideConflict, setHideConflict] = useState(false)
   const [selDepts, setSelDepts] = useState<string[]>([])
   const [selCats, setSelCats] = useState<string[]>([])
   const [selNatures, setSelNatures] = useState<string[]>([])
@@ -450,12 +456,20 @@ export default function Catalog({ searchTerm, showFilters }: { searchTerm: strin
         return validGroups.length > 0 ? { ...cls, groups: validGroups } : null
       }).filter((cls): cls is Class => cls !== null)
 
-      if ((courseMatch || teacherMatch) && filteredClasses.length > 0) {
-        res.push({ ...c, classes: filteredClasses })
+      // Apply conflict filtering
+      const finalClasses = hideConflict
+        ? filteredClasses.map(cls => {
+          const nonDeadGroups = cls.groups.filter(g => !isGroupDead(cls, g, cart, solutions, validIds))
+          return nonDeadGroups.length > 0 ? { ...cls, groups: nonDeadGroups } : null
+        }).filter((cls): cls is Class => cls !== null)
+        : filteredClasses
+
+      if ((courseMatch || teacherMatch) && finalClasses.length > 0) {
+        res.push({ ...c, classes: finalClasses })
       }
       return res
     }, [])
-  }, [data, searchTerm, hideForbidden, selDepts, selCats, selNatures, selEras, selCredits, selDays, selPeriods])
+  }, [data, searchTerm, hideForbidden, hideConflict, selDepts, selCats, selNatures, selEras, selCredits, selDays, selPeriods, cart, solutions, validIds])
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
@@ -464,7 +478,7 @@ export default function Catalog({ searchTerm, showFilters }: { searchTerm: strin
         <div className="bg-zinc-950 border-b border-zinc-800 p-4 shrink-0 shadow-xl overflow-y-auto max-h-[25vh] custom-scrollbar flex flex-wrap gap-6 items-start">
           {/* Switches */}
           <div className="flex flex-wrap gap-2">
-            {[{ l: "隐藏受限课程", v: hideForbidden, s: setHideForbidden }].map(f => (
+            {[{ l: "隐藏受限课程", v: hideForbidden, s: setHideForbidden }, { l: "忽略冲突", v: hideConflict, s: setHideConflict }].map(f => (
               <button key={f.l} onClick={() => f.s(!f.v)} className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${f.v ? "bg-blue-500 border-blue-500 text-white" : "bg-zinc-900 border-zinc-800 text-zinc-500 hover:text-zinc-300"}`}>{f.l}</button>
             ))}
           </div>
