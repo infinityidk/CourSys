@@ -29,6 +29,7 @@ const PERIOD_MAP: Record<string, number[]> = {
 function makeCartOption(cls: Class, g: Group, c: Course): CartOption {
   return {
     id: g.id,
+    code: c.code,
     name: `${c.name} ${cls.seq}班-${g.seq}组`,
     teacher: g.teacher || cls.teacher || '',
     slots: [...(cls.slots || []), ...(g.slots || [])]
@@ -386,7 +387,7 @@ export default function Catalog({ searchTerm, showFilters }: { searchTerm: strin
     if (!worker.current) return
     const blocked = useStore.getState().blocked
     const groups = Object.values(cart).map(g => ({
-      id: g.id, target: g.target, options: g.options.map(o => ({ id: o.id, slots: o.slots, code: g.id }))
+      id: g.id, target: g.target, options: g.options.map(o => ({ id: o.id, slots: o.slots, code: o.code }))
     }))
     worker.current.postMessage({ type: 'SYNC_GROUPS', groups, blocked })
   }, [cart])
