@@ -13,6 +13,13 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tokio::sync::Mutex;
 type CatalogInfo = HashMap<String, (String, Option<Vec<Vec<Dependency>>>)>;
+struct BuildCnfContext<'a> {
+    state: &'a Arc<AppState>,
+    cookie: &'a str,
+    token: &'a str,
+    leaves: &'a HashMap<String, HashSet<Dependency>>,
+    list_type: &'a str,
+}
 
 fn from_list(list: &[Value], by_code: &mut HashMap<String, Vec<RawCourse>>) -> anyhow::Result<()> {
     for item in list {
@@ -57,18 +64,15 @@ async fn fetch_leaves(
 
 #[async_recursion]
 async fn build_cnf(
-    state: &Arc<AppState>,
-    cookie: &str,
-    token: &str,
+    ctx: &BuildCnfContext<'_>,
     group_code: Option<&str>,
     root_course_id: Option<&str>,
     relation: Option<&str>,
-    leaves: &HashMap<String, HashSet<Dependency>>,
-    list_type: &str,
 ) -> Result<Vec<Vec<Dependency>>, anyhow::Error> {
     if relation.is_none() {
         let code = group_code.ok_or_else(|| anyhow::anyhow!("Leaf node missing group_code"))?;
-        let courses = leaves
+        let courses = ctx
+            .leaves
             .get(code)
             .ok_or_else(|| anyhow::anyhow!("Leaf group_code {} not found in leaves", code))?;
         return Ok(vec![courses.iter().cloned().collect()]);
@@ -78,17 +82,17 @@ async fn build_cnf(
     } else {
         let cid =
             root_course_id.ok_or_else(|| anyhow::anyhow!("No group_code and no root_course_id"))?;
-        vec![("kzdm", ""), ("kcid", cid), ("kzlx", list_type)]
+        vec![("kzdm", ""), ("kcid", cid), ("kzlx", ctx.list_type)]
     };
 
     let json: Value = send_request(
-        state
+        ctx.state
             .http_client
             .post("https://tis.sustech.edu.cn/kck/xxxxkzkc/queryKzxx")
-            .header(reqwest::header::COOKIE, cookie)
+            .header(reqwest::header::COOKIE, ctx.cookie)
             .form(&params),
-        token,
-        state,
+        ctx.token,
+        ctx.state,
     )
     .await?;
     let raw_nodes: Vec<Node> = json["kzList1"]
@@ -102,17 +106,8 @@ async fn build_cnf(
 
     let mut children_cnf = Vec::new();
     for node in raw_nodes {
-        let child_cnf = build_cnf(
-            state,
-            cookie,
-            token,
-            Some(&node.group_code),
-            None,
-            node.relation.as_deref(),
-            leaves,
-            list_type,
-        )
-        .await?;
+        let child_cnf =
+            build_cnf(ctx, Some(&node.group_code), None, node.relation.as_deref()).await?;
         children_cnf.push(child_cnf);
     }
 
@@ -143,35 +138,25 @@ pub async fn fetch_dependency_tree(
     if leaves.is_empty() {
         return Ok(vec![]);
     }
-    match build_cnf(
+    let ctx = BuildCnfContext {
         state,
         cookie,
         token,
-        None,
-        Some(course_id),
-        Some("2"),
-        &leaves,
-        "1",
-    )
-    .await
-    {
-        Ok(result) => return Ok(result),
+        leaves: &leaves,
+        list_type: "1",
+    };
+    match build_cnf(&ctx, None, Some(course_id), Some("2")).await {
+        Ok(result) => Ok(result),
         Err(e) => {
             tracing::warn!(
                 "First attempt with list_type=1 failed: {}, trying list_type=2",
                 e
             );
-            build_cnf(
-                state,
-                cookie,
-                token,
-                None,
-                Some(course_id),
-                Some("2"),
-                &leaves,
-                "2",
-            )
-            .await
+            let ctx2 = BuildCnfContext {
+                list_type: "2",
+                ..ctx
+            };
+            build_cnf(&ctx2, None, Some(course_id), Some("2")).await
         }
     }
 }
