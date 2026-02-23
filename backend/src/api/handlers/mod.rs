@@ -1,0 +1,12 @@
+pub mod catalog;
+pub mod grade;
+pub mod login;
+pub mod meta;
+pub mod modify;
+pub mod online;
+pub mod quit;
+pub mod schedule;
+pub mod select;
+pub mod syllabus;
+pub mod update;
+pub mod user;
