@@ -50,7 +50,7 @@ pub struct ScheduleItem {
     #[serde(rename = "jfzlbmc")]
     pub grade_type: String,
     #[serde(rename = "xkxs")]
-    pub coin: String,
+    pub coin: Option<String>,
 }
 
 #[derive(Debug, Serialize, TS)]
@@ -76,5 +76,5 @@ pub struct ScheduleResponse {
     pub undergraduate_capacity: String,
     pub graduate_capacity: String,
     pub grade_type: String,
-    pub coin: String,
+    pub coin: Option<String>,
 }
