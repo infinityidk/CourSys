@@ -35,13 +35,13 @@ pub struct ScheduleItem {
     pub info: String,
     #[serde(rename = "id")]
     pub id: String,
-    #[serde(rename = "bksyxrs")]
+    #[serde(rename = "bksyxrlrs")]
     pub undergraduate_number: String,
-    #[serde(rename = "yjsyxrs")]
+    #[serde(rename = "yjsyxrlrs")]
     pub graduate_number: String,
-    #[serde(rename = "nansyxrs")]
+    #[serde(rename = "nansyxrlrs")]
     pub male_number: String,
-    #[serde(rename = "nvsyxrs")]
+    #[serde(rename = "nvsyxrlrs")]
     pub female_number: String,
     #[serde(rename = "bksrl")]
     pub undergraduate_capacity: String,
