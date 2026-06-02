@@ -438,7 +438,20 @@ async fn save_deps_file(
     tokio::fs::create_dir_all("data").await?;
     let path = deps_path(semester);
     let tmp = path.with_extension("tmp");
-    let ordered: BTreeMap<&String, &Option<Vec<Vec<Dependency>>>> = deps.iter().collect();
+    let ordered: BTreeMap<_, _> = deps
+        .iter()
+        .map(|(k, v)| {
+            (
+                k.clone(),
+                v.as_ref().map(|clauses| {
+                    let mut clauses = clauses.clone();
+                    clauses.iter_mut().for_each(|c| c.sort());
+                    clauses.sort();
+                    clauses
+                }),
+            )
+        })
+        .collect();
     let json = serde_json::to_string(&ordered)?;
     tokio::fs::write(&tmp, &json).await?;
     tokio::fs::rename(&tmp, &path).await?;

@@ -112,7 +112,7 @@ pub struct Class {
     pub slots: Vec<Slot>,
     pub groups: Vec<Group>,
 }
-#[derive(Debug, Clone, Serialize, Deserialize, TS, Eq, PartialEq, Hash)]
+#[derive(Debug, Clone, Serialize, Deserialize, TS, Eq, PartialEq, Hash, PartialOrd, Ord)]
 #[ts(export, export_to = "../../frontend/src/bindings/Dependency.ts")]
 pub struct Dependency {
     pub code: String,
