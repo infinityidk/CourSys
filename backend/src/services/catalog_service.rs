@@ -8,7 +8,7 @@ use async_recursion::async_recursion;
 use futures::StreamExt;
 use itertools::Itertools;
 use serde_json::Value;
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeMap, HashMap, HashSet};
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
@@ -438,7 +438,8 @@ async fn save_deps_file(
     tokio::fs::create_dir_all("data").await?;
     let path = deps_path(semester);
     let tmp = path.with_extension("tmp");
-    let json = serde_json::to_string(deps)?;
+    let ordered: BTreeMap<&String, &Option<Vec<Vec<Dependency>>>> = deps.iter().collect();
+    let json = serde_json::to_string(&ordered)?;
     tokio::fs::write(&tmp, &json).await?;
     tokio::fs::rename(&tmp, &path).await?;
     Ok(())
