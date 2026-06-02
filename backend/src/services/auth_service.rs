@@ -2,16 +2,16 @@ use crate::models::auth::LoginRequest;
 use crate::models::session::UserSession;
 use crate::services::session_manager::create_session;
 use crate::state::AppState;
+use regex::Regex;
 use reqwest::Url;
 use reqwest::cookie::{CookieStore, Jar};
-use scraper::{Html, Selector};
 use std::sync::Arc;
 use std::sync::LazyLock;
-static SELECTOR: LazyLock<Selector> =
-    LazyLock::new(|| Selector::parse("input[name='execution']").unwrap());
+static EXECUTION_REGEX: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r#"name="execution"[^>]*value="([^"]+)""#).unwrap());
 
 pub async fn perform_cas_login(
-    state: &Arc<AppState>,
+    state: &AppState,
     payload: LoginRequest,
 ) -> Result<String, anyhow::Error> {
     let jar = Arc::new(Jar::default());
@@ -30,12 +30,10 @@ pub async fn perform_cas_login(
     let body = get_res.text().await?;
 
     let execution = {
-        let document = Html::parse_document(&body);
-        document
-            .select(&SELECTOR)
-            .next()
-            .and_then(|el| el.value().attr("value"))
-            .map(|s| s.to_string())
+        EXECUTION_REGEX
+            .captures(&body)
+            .and_then(|caps| caps.get(1))
+            .map(|m| m.as_str().to_string())
             .ok_or_else(|| anyhow::anyhow!("Failed to parse execution token"))?
     };
 

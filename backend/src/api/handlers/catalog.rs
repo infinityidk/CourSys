@@ -1,3 +1,4 @@
+use crate::api::error::AppError;
 use crate::{
     api::extractor::AuthSession,
     models::catalog::CatalogRequest,
@@ -6,31 +7,23 @@ use crate::{
 };
 use axum::{
     extract::{Query, State},
-    http::StatusCode,
     response::IntoResponse,
 };
 use reqwest::header;
-use std::sync::Arc;
 
 pub async fn catalog_handler(
-    State(state): State<Arc<AppState>>,
+    State(state): State<AppState>,
     auth: AuthSession,
     Query(payload): Query<CatalogRequest>,
-) -> Result<impl IntoResponse, StatusCode> {
-    let _ = get_current_semester(&state, &auth.session.tis_cookie, &auth.token)
-        .await
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+) -> Result<impl IntoResponse, AppError> {
+    let _ = get_current_semester(&state, &auth.session.tis_cookie, &auth.token).await?;
     let compress = get_catalog(
         &state,
         &auth.session.tis_cookie,
         &auth.token,
         &payload.semester,
     )
-    .await
-    .map_err(|e| {
-        tracing::error!("Catalog fetch failed: {:#}", e);
-        StatusCode::INTERNAL_SERVER_ERROR
-    })?;
+    .await?;
 
     let headers = [
         (header::CONTENT_TYPE, "application/json"),

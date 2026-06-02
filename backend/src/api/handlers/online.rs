@@ -1,5 +1,5 @@
+use crate::api::error::AppError;
 use axum::{Json, extract::State, http::StatusCode};
-use std::sync::Arc;
 
 use crate::{
     api::extractor::AuthSession,
@@ -8,16 +8,18 @@ use crate::{
 };
 
 pub async fn online_handler(
-    State(state): State<Arc<AppState>>,
+    State(state): State<AppState>,
     auth: AuthSession,
-) -> Result<Json<()>, StatusCode> {
+) -> Result<Json<()>, AppError> {
     keep_alive(&state, &auth.session.tis_cookie, &auth.token)
         .await
-        .map_err(|_| StatusCode::UNAUTHORIZED)?;
-
-    renew_session_ttl(&state, &auth.token)
-        .await
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        .map_err(|_| {
+            AppError::with_status(
+                StatusCode::UNAUTHORIZED,
+                anyhow::anyhow!("Keep alive failed, session may be expired"),
+            )
+        })?;
+    renew_session_ttl(&state, &auth.token).await?;
 
     Ok(Json(()))
 }

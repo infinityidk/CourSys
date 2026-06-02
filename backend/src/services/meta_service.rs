@@ -3,9 +3,9 @@ use crate::{
     utils::tis::query_catalog_page,
 };
 use chrono::{Datelike, FixedOffset, TimeZone, Utc};
-use std::sync::Arc;
+use std::path::PathBuf;
 
-async fn check_meta_valid(state: &Arc<AppState>) -> Option<SemesterInfo> {
+async fn check_meta_valid(state: &AppState) -> Option<SemesterInfo> {
     let cache = state.semester_cache.read().await;
     if let Some(info) = cache.as_ref() {
         let tz = FixedOffset::east_opt(8 * 3600).unwrap();
@@ -18,7 +18,7 @@ async fn check_meta_valid(state: &Arc<AppState>) -> Option<SemesterInfo> {
 
 /// Fetches the global Current Semester based on latest schedule tasks payload.
 pub async fn get_current_semester(
-    state: &Arc<AppState>,
+    state: &AppState,
     cookie: &str,
     token: &str,
 ) -> Result<String, anyhow::Error> {
@@ -79,15 +79,12 @@ pub async fn get_current_semester(
     if let Some(old) = old_last
         && Some(&old) != valid.last()
     {
-        let mut compressed = state.compressed_catalog.write().await;
-        compressed.remove(&old);
-        let mut info = state.catalog_info_cache.write().await;
-        info.remove(&old);
+        state.compressed_catalog.remove(&old);
+        state.catalog_info_cache.remove(&old);
         state.semester_locks.remove(&old);
-        tracing::info!(
-            "Semester changed, removed caches for oldest semester: {}",
-            old
-        );
+        let old_path = PathBuf::from("cache").join(format!("deps_{old}.json"));
+        let _ = tokio::fs::remove_file(old_path).await;
+        tracing::info!("Removed caches for oldest semester: {old}");
     }
 
     let info = SemesterInfo {

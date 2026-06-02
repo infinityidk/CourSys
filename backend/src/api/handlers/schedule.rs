@@ -1,10 +1,10 @@
+use crate::api::error::AppError;
 use axum::{
     Json,
     extract::{Query, State},
     http::StatusCode,
 };
 use serde_json::Value;
-use std::sync::Arc;
 
 use crate::{
     api::extractor::AuthSession,
@@ -15,12 +15,15 @@ use crate::{
 };
 
 pub async fn schedule_handler(
-    State(state): State<Arc<AppState>>,
+    State(state): State<AppState>,
     auth: AuthSession,
     Query(payload): Query<ScheduleRequest>,
-) -> Result<Json<(String, Vec<ScheduleResponse>)>, StatusCode> {
+) -> Result<Json<(String, Vec<ScheduleResponse>)>, AppError> {
     if payload.semester.len() != 10 {
-        return Err(StatusCode::BAD_REQUEST);
+        return Err(AppError::with_status(
+            StatusCode::BAD_REQUEST,
+            anyhow::anyhow!("Invalid semester format"),
+        ));
     }
     let (year, season) = payload.semester.split_at(9);
     let json: Value = send_request(
@@ -35,22 +38,14 @@ pub async fn schedule_handler(
         &auth.token,
         &state,
     )
-    .await
-    .map_err(|e| {
-        tracing::error!("Failed to fetch schedule: {}", e);
-        StatusCode::INTERNAL_SERVER_ERROR
-    })?;
+    .await?;
 
-    let schedule = json["yxkcList"].as_array().ok_or_else(|| {
-        tracing::error!("Invalid schedule response: missing yxkcList");
-        StatusCode::INTERNAL_SERVER_ERROR
-    })?;
+    let schedule = json["yxkcList"]
+        .as_array()
+        .ok_or_else(|| anyhow::anyhow!("Invalid schedule response: missing yxkcList"))?;
 
     let items: Vec<ScheduleItem> =
-        serde_json::from_value(serde_json::Value::Array(schedule.clone())).map_err(|e| {
-            tracing::error!("Failed to deserialize schedule items: {}", e);
-            StatusCode::INTERNAL_SERVER_ERROR
-        })?;
+        serde_json::from_value(serde_json::Value::Array(schedule.clone()))?;
 
     let responses = items
         .into_iter()

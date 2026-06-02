@@ -1,7 +1,6 @@
 use axum::http::StatusCode;
 use reqwest::Response;
 use serde::de::DeserializeOwned;
-use std::sync::Arc;
 
 use crate::services::session_manager::delete_session;
 use crate::state::AppState;
@@ -9,7 +8,7 @@ use crate::state::AppState;
 pub async fn validate_tis_response(
     res: Response,
     token: &str,
-    state: &Arc<AppState>,
+    state: &AppState,
 ) -> Result<String, StatusCode> {
     let status = res.status();
     let url = res.url().to_string();
@@ -30,16 +29,13 @@ pub async fn validate_tis_response(
     Ok(text)
 }
 
-async fn delete_session_and_error(
-    token: &str,
-    state: &Arc<AppState>,
-) -> Result<String, StatusCode> {
+async fn delete_session_and_error(token: &str, state: &AppState) -> Result<String, StatusCode> {
     let _ = delete_session(state, token).await;
     Err(StatusCode::UNAUTHORIZED)
 }
 
 pub async fn query_catalog_page(
-    state: &Arc<crate::state::AppState>,
+    state: &AppState,
     cookie: &str,
     token: &str,
     year: &str,
@@ -71,7 +67,7 @@ pub async fn query_catalog_page(
 pub async fn send_request<T: DeserializeOwned>(
     req: reqwest::RequestBuilder,
     token: &str,
-    state: &Arc<AppState>,
+    state: &AppState,
 ) -> Result<T, anyhow::Error> {
     let response = req.send().await?;
     let text = validate_tis_response(response, token, state)

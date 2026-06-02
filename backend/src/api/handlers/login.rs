@@ -1,3 +1,4 @@
+use crate::api::error::AppError;
 use crate::{
     models::auth::{LoginRequest, LoginResponse},
     services::auth_service::perform_cas_login,
@@ -8,16 +9,17 @@ use axum::{
     extract::State,
     http::{HeaderMap, StatusCode, header::SET_COOKIE},
 };
-use std::sync::Arc;
 
 pub async fn login_handler(
-    State(state): State<Arc<AppState>>,
+    State(state): State<AppState>,
     Json(payload): Json<LoginRequest>,
-) -> Result<(HeaderMap, Json<LoginResponse>), StatusCode> {
-    let my_token = perform_cas_login(&state, payload)
-        .await
-        .map_err(|_| StatusCode::UNAUTHORIZED)?;
-
+) -> Result<(HeaderMap, Json<LoginResponse>), AppError> {
+    let my_token = perform_cas_login(&state, payload).await.map_err(|_| {
+        AppError::with_status(
+            StatusCode::UNAUTHORIZED,
+            anyhow::anyhow!("CAS login failed"),
+        )
+    })?;
     let is_prod = std::env::var("APP_ENV").unwrap_or_default() == "production";
     let secure_flag = if is_prod { "; Secure" } else { "" };
     let cookie_str = format!(
@@ -26,12 +28,7 @@ pub async fn login_handler(
     );
 
     let mut headers = HeaderMap::new();
-    headers.insert(
-        SET_COOKIE,
-        cookie_str
-            .parse()
-            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?,
-    );
+    headers.insert(SET_COOKIE, cookie_str.parse()?);
 
     Ok((
         headers,

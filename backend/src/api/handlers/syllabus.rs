@@ -1,10 +1,10 @@
+use crate::api::error::AppError;
 use axum::{
     body::Body,
     extract::{Path, State},
     http::{HeaderMap, HeaderValue, StatusCode, header},
     response::IntoResponse,
 };
-use std::sync::Arc;
 use tracing::error;
 
 use crate::{
@@ -14,35 +14,25 @@ use crate::{
 };
 
 pub async fn syllabus_handler(
-    State(state): State<Arc<AppState>>,
+    State(state): State<AppState>,
     auth: AuthSession,
     Path(code): Path<String>,
-) -> Result<impl IntoResponse, StatusCode> {
-    let semester = get_current_semester(&state, &auth.session.tis_cookie, &auth.token)
-        .await
-        .map_err(|e| {
-            error!("Failed to get current semester: {}", e);
-            StatusCode::INTERNAL_SERVER_ERROR
-        })?;
-    let _ = get_catalog(&state, &auth.session.tis_cookie, &auth.token, &semester)
-        .await
-        .map_err(|e| {
-            error!(
-                "Failed to refresh catalog for current semester {}: {}",
-                semester, e
-            );
-            StatusCode::INTERNAL_SERVER_ERROR
-        })?;
+) -> Result<impl IntoResponse, AppError> {
+    let semester = get_current_semester(&state, &auth.session.tis_cookie, &auth.token).await?;
+    let _ = get_catalog(&state, &auth.session.tis_cookie, &auth.token, &semester).await?;
 
     let course_id = {
-        let info_cache = state.catalog_info_cache.read().await;
+        let info_cache = &state.catalog_info_cache;
         info_cache
             .get(&semester)
-            .and_then(|courses| courses.get(&code))
-            .map(|(id, _)| id.clone())
-            .ok_or(StatusCode::NOT_FOUND)?
+            .and_then(|courses| courses.value().get(&code).map(|(id, _)| id.clone()))
+            .ok_or_else(|| {
+                AppError::with_status(
+                    StatusCode::NOT_FOUND,
+                    anyhow::anyhow!("Course not found in catalog"),
+                )
+            })?
     };
-
     let response = state
         .http_client
         .get(format!(
@@ -51,11 +41,7 @@ pub async fn syllabus_handler(
         ))
         .header(header::COOKIE, &auth.session.tis_cookie)
         .send()
-        .await
-        .map_err(|e| {
-            error!("Failed to request {}'s syllabus from TIS: {}", code, e);
-            StatusCode::INTERNAL_SERVER_ERROR
-        })?;
+        .await?;
 
     let status = response.status();
     let content_type = response
@@ -69,7 +55,10 @@ pub async fn syllabus_handler(
             "Failed to get {}'s syllabus from TIS: status {}, content type {}",
             code, status, content_type
         );
-        return Err(StatusCode::NOT_FOUND);
+        return Err(AppError::with_status(
+            StatusCode::NOT_FOUND,
+            anyhow::anyhow!("Syllabus not available"),
+        ));
     }
 
     let mut headers = HeaderMap::new();
@@ -79,8 +68,7 @@ pub async fn syllabus_handler(
     );
     headers.insert(
         header::CONTENT_DISPOSITION,
-        HeaderValue::from_str(&format!("inline; filename={}.pdf", code))
-            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?,
+        HeaderValue::from_str(&format!("inline; filename={}.pdf", code))?,
     );
 
     let stream = response.bytes_stream();

@@ -7,9 +7,9 @@ use std::{
     time::{Duration, Instant},
 };
 use tokio::sync::{Mutex, RwLock};
-type CompressedCatalog = Arc<RwLock<HashMap<String, (Instant, Vec<u8>)>>>;
+type CompressedCatalog = Arc<DashMap<String, (Instant, Vec<u8>)>>;
 type CatalogInfoCache =
-    Arc<RwLock<HashMap<String, HashMap<String, (String, Option<Vec<Vec<Dependency>>>)>>>>;
+    Arc<DashMap<String, HashMap<String, (String, Option<Vec<Vec<Dependency>>>)>>>;
 
 #[derive(Clone)]
 pub struct SemesterInfo {
@@ -53,8 +53,8 @@ impl AppState {
             http_client,
             semester_cache: Arc::new(RwLock::new(None)),
             meta_fetch_lock: Arc::new(Mutex::new(())),
-            compressed_catalog: Arc::new(RwLock::new(HashMap::new())),
-            catalog_info_cache: Arc::new(RwLock::new(HashMap::new())),
+            compressed_catalog: Arc::new(DashMap::new()),
+            catalog_info_cache: Arc::new(DashMap::new()),
             semester_locks: Arc::new(DashMap::new()),
             last_update_request: Arc::new(Mutex::new(None)),
         })

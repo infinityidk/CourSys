@@ -4,13 +4,8 @@ use crate::state::AppState;
 use crate::utils::tis::{send_request, validate_tis_response};
 use anyhow::Context;
 use serde_json::Value;
-use std::sync::Arc;
 
-pub async fn keep_alive(
-    state: &Arc<AppState>,
-    cookie: &str,
-    token: &str,
-) -> Result<(), anyhow::Error> {
+pub async fn keep_alive(state: &AppState, cookie: &str, token: &str) -> Result<(), anyhow::Error> {
     let res = state
         .http_client
         .post("https://tis.sustech.edu.cn/component/online")
@@ -26,7 +21,7 @@ pub async fn keep_alive(
 }
 
 pub async fn fetch_user_info(
-    state: &Arc<AppState>,
+    state: &AppState,
     cookie: &str,
     token: &str,
 ) -> Result<UserInfoResponse, anyhow::Error> {
@@ -51,7 +46,7 @@ pub async fn fetch_user_info(
 }
 
 pub async fn fetch_grades(
-    state: &Arc<AppState>,
+    state: &AppState,
     cookie: &str,
     token: &str,
     level: &str,

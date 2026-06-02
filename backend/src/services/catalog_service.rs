@@ -9,12 +9,13 @@ use futures::StreamExt;
 use itertools::Itertools;
 use serde_json::Value;
 use std::collections::{HashMap, HashSet};
+use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tokio::sync::Mutex;
 type CatalogInfo = HashMap<String, (String, Option<Vec<Vec<Dependency>>>)>;
 struct BuildCnfContext<'a> {
-    state: &'a Arc<AppState>,
+    state: &'a AppState,
     cookie: &'a str,
     token: &'a str,
     leaves: &'a HashMap<String, HashSet<Dependency>>,
@@ -30,7 +31,7 @@ fn from_list(list: &[Value], by_code: &mut HashMap<String, Vec<RawCourse>>) -> a
 }
 
 async fn fetch_leaves(
-    state: &Arc<AppState>,
+    state: &AppState,
     cookie: &str,
     token: &str,
     course_id: &str,
@@ -129,7 +130,7 @@ async fn build_cnf(
 }
 
 pub async fn fetch_dependency_tree(
-    state: &Arc<AppState>,
+    state: &AppState,
     cookie: &str,
     token: &str,
     course_id: &str,
@@ -162,7 +163,7 @@ pub async fn fetch_dependency_tree(
 }
 
 async fn fetch_catalog_full(
-    state: &Arc<AppState>,
+    state: &AppState,
     cookie: &str,
     token: &str,
     semester: &str,
@@ -276,16 +277,14 @@ async fn fetch_catalog_full(
 }
 
 pub async fn get_catalog(
-    state: &Arc<AppState>,
+    state: &AppState,
     cookie: &str,
     token: &str,
     semester: &str,
 ) -> Result<Vec<u8>, anyhow::Error> {
     let is_latest = {
-        let valid = state
-            .semester_cache
-            .read()
-            .await
+        let cache_lock = state.semester_cache.read().await;
+        let valid = cache_lock
             .as_ref()
             .ok_or_else(|| anyhow::anyhow!("Semester cache not initialized"))?
             .valid
@@ -298,11 +297,12 @@ pub async fn get_catalog(
 
     // fast path cache read
     {
-        let cache = state.compressed_catalog.read().await;
-        if let Some((ts, data)) = cache.get(semester)
-            && (!is_latest || ts.elapsed() < Duration::from_millis(500))
-        {
-            return Ok(data.clone());
+        let cache = &state.compressed_catalog;
+        if let Some(r) = cache.get(semester) {
+            let (ts, data) = r.value();
+            if !is_latest || ts.elapsed() < Duration::from_millis(500) {
+                return Ok(data.clone());
+            }
         }
     }
 
@@ -315,21 +315,37 @@ pub async fn get_catalog(
 
     // double check cache
     {
-        let cache = state.compressed_catalog.read().await;
-        if let Some((ts, data)) = cache.get(semester)
-            && (!is_latest || ts.elapsed() < Duration::from_millis(500))
-        {
-            return Ok(data.clone());
+        let cache = &state.compressed_catalog;
+        if let Some(r) = cache.get(semester) {
+            let (ts, data) = r.value();
+            if !is_latest || ts.elapsed() < Duration::from_millis(500) {
+                return Ok(data.clone());
+            }
+        }
+    }
+
+    if !state.catalog_info_cache.contains_key(semester) {
+        match load_deps_file(semester).await {
+            Ok(file_deps) if !file_deps.is_empty() => {
+                let converted = file_deps
+                    .into_iter()
+                    .map(|(k, v)| (k, (String::new(), v)))
+                    .collect();
+                state
+                    .catalog_info_cache
+                    .insert(semester.to_string(), converted);
+                tracing::info!("Loaded deps from file for {semester}");
+            }
+            Err(e) => tracing::warn!("Failed to load deps file: {e}"),
+            _ => {}
         }
     }
 
     let mut raw_data = fetch_catalog_full(state, cookie, token, semester).await?;
     let old_data = state
         .catalog_info_cache
-        .read()
-        .await
         .get(semester)
-        .cloned()
+        .map(|v| v.clone())
         .unwrap_or_default();
 
     let mut new_info: CatalogInfo = HashMap::new();
@@ -370,12 +386,54 @@ pub async fn get_catalog(
 
     state
         .catalog_info_cache
-        .write()
+        .insert(semester.to_string(), new_info.clone());
+    let deps_only: HashMap<String, Option<Vec<Vec<Dependency>>>> = new_info
+        .iter()
+        .map(|(code, (_, deps))| (code.clone(), deps.clone()))
+        .collect();
+    let sem = semester.to_string();
+    tokio::spawn(async move {
+        if let Err(e) = save_deps_file(&sem, &deps_only).await {
+            tracing::warn!("Failed to save deps file for {sem}: {e}");
+        }
+    });
+    let compressed = tokio::task::spawn_blocking(move || compress_catalog(raw_data))
         .await
-        .insert(semester.to_string(), new_info);
-    let compressed = compress_catalog(&raw_data);
-    let mut comp_cache = state.compressed_catalog.write().await;
+        .unwrap();
+    let comp_cache = state.compressed_catalog.clone();
     comp_cache.insert(semester.to_string(), (Instant::now(), compressed.clone()));
 
     Ok(compressed)
+}
+
+fn deps_path(semester: &str) -> PathBuf {
+    PathBuf::from("cache").join(format!("deps_{semester}.json"))
+}
+
+async fn load_deps_file(
+    semester: &str,
+) -> Result<HashMap<String, Option<Vec<Vec<Dependency>>>>, anyhow::Error> {
+    let path = deps_path(semester);
+    if !path.exists() {
+        return Ok(HashMap::new());
+    }
+    let data = tokio::fs::read_to_string(&path).await?;
+    if data.trim().is_empty() {
+        return Ok(HashMap::new());
+    }
+    let deps = serde_json::from_str(&data)?;
+    Ok(deps)
+}
+
+async fn save_deps_file(
+    semester: &str,
+    deps: &HashMap<String, Option<Vec<Vec<Dependency>>>>,
+) -> Result<(), anyhow::Error> {
+    tokio::fs::create_dir_all("cache").await?;
+    let path = deps_path(semester);
+    let tmp = path.with_extension("tmp");
+    let json = serde_json::to_string(deps)?;
+    tokio::fs::write(&tmp, &json).await?;
+    tokio::fs::rename(&tmp, &path).await?;
+    Ok(())
 }

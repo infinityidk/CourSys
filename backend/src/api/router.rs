@@ -11,16 +11,15 @@ use crate::state::AppState;
 use axum::{
     Router,
     extract::DefaultBodyLimit,
+    http::StatusCode,
     routing::{get, post},
 };
-use reqwest::StatusCode;
-use std::sync::Arc;
 use std::time::Duration;
 use tower_http::compression::CompressionLayer;
 use tower_http::compression::predicate::SizeAbove;
 use tower_http::timeout::TimeoutLayer;
 
-pub fn create_router(state: Arc<AppState>) -> Router {
+pub fn create_router(state: AppState) -> Router {
     Router::new()
         .route("/api/login", post(login_handler))
         .route("/api/online", post(online_handler))

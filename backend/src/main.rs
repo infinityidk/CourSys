@@ -5,7 +5,6 @@ mod state;
 mod utils;
 
 use crate::state::AppState;
-use std::sync::Arc;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 #[tokio::main]
@@ -20,11 +19,9 @@ async fn main() {
         .init();
 
     // Initialize state (this uses VALKEY_URL internally)
-    let state = Arc::new(
-        AppState::new()
-            .await
-            .expect("Failed to initialize AppState"),
-    );
+    let state = AppState::new()
+        .await
+        .expect("Failed to initialize AppState");
 
     // Create router
     let app = api::router::create_router(state);

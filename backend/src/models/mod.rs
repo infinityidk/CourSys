@@ -1,3 +1,4 @@
+pub mod actions;
 pub mod auth;
 pub mod catalog;
 pub mod grade;
@@ -6,4 +7,3 @@ pub mod schedule;
 pub mod session;
 pub mod update;
 pub mod user;
-pub mod actions;

@@ -1,20 +1,18 @@
+use crate::api::error::AppError;
 use axum::{Form, extract::State, http::StatusCode};
 use serde_json::Value;
-use std::sync::Arc;
-use tracing::error;
 
 use crate::{
-    api::extractor::AuthSession, models::actions::ModifyRequest, services::meta_service::get_current_semester, state::AppState, utils::tis::send_request
+    api::extractor::AuthSession, models::actions::ModifyRequest,
+    services::meta_service::get_current_semester, state::AppState, utils::tis::send_request,
 };
 
 pub async fn modify_handler(
-    State(state): State<Arc<AppState>>,
+    State(state): State<AppState>,
     auth: AuthSession,
     Form(payload): Form<ModifyRequest>,
-) -> Result<StatusCode, StatusCode> {
-    let semester = get_current_semester(&state, &auth.session.tis_cookie, &auth.token)
-        .await
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+) -> Result<StatusCode, AppError> {
+    let semester = get_current_semester(&state, &auth.session.tis_cookie, &auth.token).await?;
     let (year, season) = semester.split_at(9);
 
     let form_data = vec![
@@ -34,15 +32,14 @@ pub async fn modify_handler(
         &auth.token,
         &state,
     )
-    .await
-    .map_err(|e| {
-        error!("Modify request failed: {}", e);
-        StatusCode::INTERNAL_SERVER_ERROR
-    })?;
+    .await?;
 
     if json.get("jg").and_then(|v| v.as_str()) == Some("1") {
         Ok(StatusCode::OK)
     } else {
-        Err(StatusCode::BAD_REQUEST)
+        Err(AppError::with_status(
+            StatusCode::BAD_REQUEST,
+            anyhow::anyhow!("Operation rejected by TIS"),
+        ))
     }
 }
