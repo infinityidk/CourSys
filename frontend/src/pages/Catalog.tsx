@@ -348,7 +348,7 @@ const VirtualMasonry = memo(({ data, ...props }: any) => {
 })
 
 export default function Catalog({ searchTerm, showFilters }: { searchTerm: string, showFilters: boolean }) {
-  const { semester, cart, validIds, solutions, setValidIds, setSolutions } = useStore()
+  const { semester, cart, validIds, solutions, blocked, setValidIds, setSolutions } = useStore()
   const worker = useRef<Worker | null>(null)
   const qc = useQueryClient()
 
@@ -390,7 +390,7 @@ export default function Catalog({ searchTerm, showFilters }: { searchTerm: strin
       id: g.id, target: g.target, options: g.options.map(o => ({ id: o.id, slots: o.slots, code: o.code }))
     }))
     worker.current.postMessage({ type: 'SYNC_GROUPS', groups, blocked })
-  }, [cart])
+  }, [cart, blocked])
 
   const selectMut = useMutation({
     mutationFn: (params: { id: string; coin: string }) => api.post('/select', new URLSearchParams({ id: params.id, coin: params.coin })),
