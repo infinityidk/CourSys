@@ -24,7 +24,13 @@ struct BuildCnfContext<'a> {
 
 fn from_list(list: &[Value], by_code: &mut HashMap<String, Vec<RawCourse>>) -> anyhow::Result<()> {
     for item in list {
-        let raw = serde_json::from_value::<RawCourse>(item.clone())?;
+        let code = item
+            .get("kcdm")
+            .and_then(|v| v.as_str())
+            .unwrap_or("?")
+            .to_string();
+        let raw: RawCourse = serde_path_to_error::deserialize(item.clone())
+            .map_err(|e| anyhow::anyhow!("course {}: {}", code, e))?;
         by_code.entry(raw.code.clone()).or_default().push(raw);
     }
     Ok(())
@@ -202,13 +208,13 @@ async fn fetch_catalog_full(
             }
 
             let class_raw = class_raw.unwrap();
-            let class_slots = parse_slots(Some(&class_raw.slots));
+            let class_slots = parse_slots(class_raw.slots.as_deref());
             let class_slots_set: HashSet<Slot> = class_slots.iter().cloned().collect();
 
             let mut groups = Vec::new();
             for raw in group_raws {
                 let group_seq = (raw.seq.as_bytes()[3] - b'A' + 1).to_string();
-                let group_all = parse_slots(Some(&raw.slots));
+                let group_all = parse_slots(raw.slots.as_deref());
                 let group_slots = group_all
                     .into_iter()
                     .filter(|slot| !class_slots_set.contains(slot))
@@ -249,7 +255,7 @@ async fn fetch_catalog_full(
                 language: class_raw.language.clone(),
                 allowed: class_raw.allowed.clone(),
                 denied: class_raw.denied.clone(),
-                info: parse_info(&class_raw.info),
+                info: class_raw.info.as_deref().and_then(parse_info),
                 slots: class_slots,
                 groups,
             };
@@ -406,8 +412,8 @@ pub async fn get_catalog(
     Ok(compressed)
 }
 
-fn deps_path(semester: &str) -> PathBuf {
-    PathBuf::from("cache").join(format!("deps_{semester}.json"))
+pub fn deps_path(semester: &str) -> PathBuf {
+    PathBuf::from("data").join(format!("deps_{semester}.json"))
 }
 
 async fn load_deps_file(
@@ -429,7 +435,7 @@ async fn save_deps_file(
     semester: &str,
     deps: &HashMap<String, Option<Vec<Vec<Dependency>>>>,
 ) -> Result<(), anyhow::Error> {
-    tokio::fs::create_dir_all("cache").await?;
+    tokio::fs::create_dir_all("data").await?;
     let path = deps_path(semester);
     let tmp = path.with_extension("tmp");
     let json = serde_json::to_string(deps)?;

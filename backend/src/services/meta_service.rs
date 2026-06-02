@@ -1,9 +1,9 @@
 use crate::{
+    services::catalog_service::deps_path,
     state::{AppState, SemesterInfo},
     utils::tis::query_catalog_page,
 };
 use chrono::{Datelike, FixedOffset, TimeZone, Utc};
-use std::path::PathBuf;
 
 async fn check_meta_valid(state: &AppState) -> Option<SemesterInfo> {
     let cache = state.semester_cache.read().await;
@@ -82,7 +82,7 @@ pub async fn get_current_semester(
         state.compressed_catalog.remove(&old);
         state.catalog_info_cache.remove(&old);
         state.semester_locks.remove(&old);
-        let old_path = PathBuf::from("cache").join(format!("deps_{old}.json"));
+        let old_path = deps_path(&old);
         let _ = tokio::fs::remove_file(old_path).await;
         tracing::info!("Removed caches for oldest semester: {old}");
     }

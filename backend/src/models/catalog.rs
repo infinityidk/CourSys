@@ -30,7 +30,7 @@ pub struct RawCourse {
     #[serde(rename = "dgjsmc")]
     pub teacher: Option<String>,
     #[serde(rename = "pkjgmx")]
-    pub slots: String,
+    pub slots: Option<String>,
     #[serde(rename = "skyymc")]
     pub language: Option<String>,
     #[serde(rename = "mxdx")]
@@ -38,7 +38,7 @@ pub struct RawCourse {
     #[serde(rename = "jzdx")]
     pub denied: Option<String>,
     #[serde(rename = "kcxx")]
-    pub info: String,
+    pub info: Option<String>,
     #[serde(rename = "id")]
     pub id: String,
     #[serde(rename = "bksyxrlrs")]
@@ -50,9 +50,9 @@ pub struct RawCourse {
     #[serde(rename = "nvsyxrlrs")]
     pub female_number: String,
     #[serde(rename = "bksrl")]
-    pub undergraduate_capacity: String,
+    pub undergraduate_capacity: Option<String>,
     #[serde(rename = "yjsrl")]
-    pub graduate_capacity: String,
+    pub graduate_capacity: Option<String>,
     #[serde(rename = "jszws")]
     pub seats: Option<String>,
 }
@@ -94,8 +94,8 @@ pub struct Group {
     pub graduate_number: String,
     pub male_number: String,
     pub female_number: String,
-    pub undergraduate_capacity: String,
-    pub graduate_capacity: String,
+    pub undergraduate_capacity: Option<String>,
+    pub graduate_capacity: Option<String>,
     pub seats: Option<String>,
     pub slots: Vec<Slot>,
 }
