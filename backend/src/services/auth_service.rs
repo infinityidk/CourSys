@@ -44,12 +44,36 @@ pub async fn perform_cas_login(
         ("_eventId", "submit"),
     ];
 
-    login_client
+    let res = login_client
         .post(login_url)
         .header("Referer", login_url)
         .form(&params)
         .send()
         .await?;
+
+    let final_url = res.url().clone();
+    let final_body = res.text().await?;
+
+    if final_url.path() == "/cas/login"
+        && (final_body.contains("Authentication Succeeded with Warnings")
+            || final_body.contains("认证警告"))
+    {
+        let new_execution = EXECUTION_REGEX
+            .captures(&final_body)
+            .and_then(|caps| caps.get(1))
+            .map(|m| m.as_str().to_string())
+            .ok_or_else(|| anyhow::anyhow!("execution not found on warning page"))?;
+
+        login_client
+            .post("https://cas.sustech.edu.cn/cas/login")
+            .header("Referer", final_url.as_str())
+            .form(&[
+                ("execution", new_execution.as_str()),
+                ("_eventId", "proceed"),
+            ])
+            .send()
+            .await?;
+    }
 
     drop(payload);
 
