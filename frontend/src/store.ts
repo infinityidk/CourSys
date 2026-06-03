@@ -3,7 +3,7 @@ import type { Slot } from './bindings/Slot'
 import type { UserInfoResponse } from './bindings/UserInfoResponse'
 import type { SolverSolution } from './utils/solver'
 
-export interface CartOption { id: string, code: string, name: string, teacher: string, slots: Slot[] }
+export interface CartOption { id: string, code: string, name: string, teacher: string, slots: Slot[], credits: string }
 export interface CartGroup { id: string, name: string, target: number, options: CartOption[] }
 
 interface AppState {

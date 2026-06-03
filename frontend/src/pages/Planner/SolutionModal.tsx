@@ -44,11 +44,18 @@ export default function SolutionModal({ onClose }: { onClose: () => void }) {
     )
   }, [items, week])
 
+  const totalCredits = useMemo(() => items.reduce((sum, { credits }) => sum + (+credits || 0), 0), [items]);
+
   return (
     <div className="fixed inset-0 z-[100] bg-zinc-950/95 backdrop-blur-md flex flex-col animate-fade-in-up" onClick={e => e.stopPropagation()}>
       <div className="flex justify-between items-center px-8 py-5 border-b border-zinc-800 bg-zinc-950 shrink-0">
         <div className="flex items-center gap-6">
           <h2 className="text-3xl font-black text-white italic tracking-tighter">PLANNER RESULTS</h2>
+          <div className="h-8 w-px bg-zinc-800"></div>
+          <div className="flex flex-col justify-center">
+            <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">学分</span>
+            <span className="text-xl font-mono font-bold text-white">{totalCredits}</span>
+          </div>
           <div className="h-8 w-px bg-zinc-800"></div>
           <div className="flex flex-col justify-center">
             <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Available Solutions</span>

@@ -32,7 +32,8 @@ function makeCartOption(cls: Class, g: Group, c: Course): CartOption {
     code: c.code,
     name: `${c.name} ${cls.seq}班-${g.seq}组`,
     teacher: g.teacher || cls.teacher || '',
-    slots: [...(cls.slots || []), ...(g.slots || [])]
+    slots: [...(cls.slots || []), ...(g.slots || [])],
+    credits: c.credits
   }
 }
 
