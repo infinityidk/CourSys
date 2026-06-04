@@ -198,7 +198,7 @@ const CourseCard = memo(({ c, cart, validIds, solutions, selectMut, updateMut }:
               {c.dependencies.map((group, idx) => (
                 <div key={idx} className="text-[10px] text-amber-200/80 font-mono leading-tight flex items-start">
                   <span className="mr-2 text-amber-600 font-bold select-none">{idx + 1}.</span>
-                  <span className="truncate">{group.map(item => `${item.code} ${item.name}`).join(' | ')}</span>
+                  <span className="break-words">{group.map(item => `${item.code} ${item.name}`).join(' | ')}</span>
                 </div>
               ))}
             </div>
@@ -444,9 +444,9 @@ export default function Catalog({ searchTerm, showFilters }: { searchTerm: strin
           if (hasTimeFilter) {
             const allSlots = [...(cls.slots || []), ...(g.slots || [])]
             if (allSlots.length === 0) return false
-            const timeSubset = allSlots.every(s =>
+            const timeSubset = allSlots.some(s =>
               (days.size === 0 || days.has(s.day)) &&
-              (periods.size === 0 || (s.period[0] <= s.period[1] && Array.from({ length: s.period[1] - s.period[0] + 1 }, (_, i) => s.period[0] + i).every(p => periods.has(p))))
+              (periods.size === 0 || Array.from({ length: s.period[1] - s.period[0] + 1 }, (_, i) => s.period[0] + i).some(p => periods.has(p)))
             )
             if (!timeSubset) return false
           }
