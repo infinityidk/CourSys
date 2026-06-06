@@ -6,22 +6,21 @@ edition = "2024"
 [dependencies]
 anyhow = "1.0.102"
 async-recursion = "1.1.1"
-axum = { version = "0.8.9", features = ["macros"] }
+axum = "0.8.9"
 axum-extra = { version = "0.12.6", features = ["cookie"] }
 brotli = "8.0.3"
-chrono = { version = "0.4.44", features = ["serde"] }
+chrono = "0.4.45"
 dashmap = "6.2.1"
 futures = "0.3.32"
 itertools = "0.14.0"
-redis = { version = "1.2.2", features = ["tokio-comp", "connection-manager"] }
 regex = "1.12.3"
 reqwest = { version = "0.13.4", features = ["json", "cookies", "form", "stream"] }
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.150"
 serde_path_to_error = "0.1.20"
-tokio = { version = "1.52.3", features = ["full"] }
+tokio = { version = "1.52.3", features = ["macros", "rt-multi-thread", "net", "time", "sync", "fs"] }
 tower-http = { version = "0.6.11", features = ["compression-full", "timeout"] }
 tracing = "0.1.44"
 tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
 ts-rs = "12.0.1"
-uuid = { version = "1.23.2", features = ["v4", "serde"] }
+uuid = { version = "1.23.2", features = ["v4"] }

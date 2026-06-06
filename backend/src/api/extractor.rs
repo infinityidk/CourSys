@@ -25,7 +25,6 @@ impl FromRequestParts<AppState> for AuthSession {
             .ok_or(StatusCode::UNAUTHORIZED)?;
 
         let session = crate::services::session_manager::get_session(state, &token)
-            .await
             .map_err(|_| StatusCode::UNAUTHORIZED)?;
 
         Ok(AuthSession { token, session })

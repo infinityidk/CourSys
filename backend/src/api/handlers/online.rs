@@ -19,7 +19,7 @@ pub async fn online_handler(
                 anyhow::anyhow!("Keep alive failed, session may be expired"),
             )
         })?;
-    renew_session_ttl(&state, &auth.token).await?;
+    renew_session_ttl(&state, &auth.token)?;
 
     Ok(Json(()))
 }

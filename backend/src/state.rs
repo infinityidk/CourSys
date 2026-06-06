@@ -1,6 +1,5 @@
 use crate::models::catalog::Dependency;
 use dashmap::DashMap;
-use redis::Client;
 use std::{
     collections::HashMap,
     sync::Arc,
@@ -20,7 +19,7 @@ pub struct SemesterInfo {
 
 #[derive(Clone)]
 pub struct AppState {
-    pub valkey_pool: redis::aio::ConnectionManager,
+    pub session_store: Arc<DashMap<String, (Instant, crate::models::session::UserSession)>>,
     pub http_client: reqwest::Client,
     pub semester_cache: Arc<RwLock<Option<SemesterInfo>>>,
     pub meta_fetch_lock: Arc<Mutex<()>>,
@@ -32,11 +31,6 @@ pub struct AppState {
 
 impl AppState {
     pub async fn new() -> Result<Self, anyhow::Error> {
-        let valkey_url =
-            std::env::var("VALKEY_URL").unwrap_or_else(|_| "redis://127.0.0.1/".to_string());
-        let client = Client::open(valkey_url)?;
-        let valkey_pool = client.get_connection_manager().await?;
-
         let http_client = reqwest::Client::builder()
             .cookie_store(false)
             .connect_timeout(std::time::Duration::from_secs(10))
@@ -49,7 +43,7 @@ impl AppState {
             .expect("Failed to build global HTTP client");
 
         Ok(Self {
-            valkey_pool,
+            session_store: Arc::new(DashMap::new()),
             http_client,
             semester_cache: Arc::new(RwLock::new(None)),
             meta_fetch_lock: Arc::new(Mutex::new(())),

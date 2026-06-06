@@ -14,7 +14,7 @@ pub async fn validate_tis_response(
     let url = res.url().to_string();
 
     if status.is_redirection() || url.contains("cas.sustech.edu.cn") {
-        return delete_session_and_error(token, state).await;
+        return delete_session_and_error(token, state);
     }
 
     let text = res
@@ -23,14 +23,14 @@ pub async fn validate_tis_response(
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     if text.contains("id=\"casLoginForm\"") || text.contains("cas.sustech.edu.cn/cas/login") {
-        return delete_session_and_error(token, state).await;
+        return delete_session_and_error(token, state);
     }
 
     Ok(text)
 }
 
-async fn delete_session_and_error(token: &str, state: &AppState) -> Result<String, StatusCode> {
-    let _ = delete_session(state, token).await;
+fn delete_session_and_error(token: &str, state: &AppState) -> Result<String, StatusCode> {
+    let _ = delete_session(state, token);
     Err(StatusCode::UNAUTHORIZED)
 }
 

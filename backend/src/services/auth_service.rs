@@ -93,7 +93,7 @@ pub async fn perform_cas_login(
         last_active: chrono::Utc::now().timestamp(),
     };
 
-    let token = create_session(state, session).await?;
+    let token = create_session(state, session)?;
 
     Ok(token)
 }

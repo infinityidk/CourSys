@@ -4,6 +4,8 @@ mod services;
 mod state;
 mod utils;
 
+use std::time::Instant;
+
 use crate::state::AppState;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
@@ -18,10 +20,19 @@ async fn main() {
         .with(tracing_subscriber::fmt::layer())
         .init();
 
-    // Initialize state (this uses VALKEY_URL internally)
     let state = AppState::new()
         .await
         .expect("Failed to initialize AppState");
+
+    let session_store = state.session_store.clone();
+    tokio::spawn(async move {
+        let mut interval = tokio::time::interval(std::time::Duration::from_secs(600));
+        loop {
+            interval.tick().await;
+            let now = Instant::now();
+            session_store.retain(|_, (expire_at, _)| *expire_at > now);
+        }
+    });
 
     // Create router
     let app = api::router::create_router(state);
