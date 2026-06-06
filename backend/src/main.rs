@@ -38,7 +38,10 @@ async fn main() {
     let app = api::router::create_router(state);
 
     // Start server
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
-    tracing::info!("listening on {}", listener.local_addr().unwrap());
+    let std_listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+    std_listener.set_nonblocking(true).unwrap();
+    let listener = tokio::net::TcpListener::from_std(std_listener).unwrap();
+    let port = listener.local_addr().unwrap().port();
+    let _ = webbrowser::open(&format!("http://127.0.0.1:{port}"));
     axum::serve(listener, app).await.unwrap();
 }
