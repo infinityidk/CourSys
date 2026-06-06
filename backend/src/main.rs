@@ -3,11 +3,35 @@ mod models;
 mod services;
 mod state;
 mod utils;
-
-use std::time::Instant;
-
 use crate::state::AppState;
+use rust_embed::RustEmbed;
+use std::time::Instant;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
+
+#[derive(RustEmbed)]
+#[folder = "static"]
+struct Assets;
+
+async fn serve_frontend(uri: axum::http::Uri) -> axum::response::Response {
+    let path = uri.path().trim_start_matches('/');
+    let path = if path.is_empty() { "index.html" } else { path };
+
+    if let Some(file) = Assets::get(path) {
+        return axum::response::Response::builder()
+            .header(
+                "Content-Type",
+                mime_guess::from_path(path).first_or_octet_stream().as_ref(),
+            )
+            .body(axum::body::Body::from(file.data))
+            .unwrap();
+    }
+
+    let file = Assets::get("index.html").expect("index.html not embedded");
+    axum::response::Response::builder()
+        .header("Content-Type", "text/html")
+        .body(axum::body::Body::from(file.data))
+        .unwrap()
+}
 
 #[tokio::main]
 async fn main() {
@@ -15,7 +39,7 @@ async fn main() {
     tracing_subscriber::registry()
         .with(
             tracing_subscriber::EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| "debug".into()),
+                .unwrap_or_else(|_| "info".into()),
         )
         .with(tracing_subscriber::fmt::layer())
         .init();
@@ -35,7 +59,7 @@ async fn main() {
     });
 
     // Create router
-    let app = api::router::create_router(state);
+    let app = api::router::create_router(state).fallback(serve_frontend);
 
     // Start server
     let std_listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
