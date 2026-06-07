@@ -5,7 +5,7 @@ use crate::utils::parser::{get_era, parse_info, parse_slots};
 use crate::utils::tis::{query_catalog_page, send_request};
 use anyhow::Context;
 use async_recursion::async_recursion;
-use futures::{StreamExt, stream};
+use futures::{StreamExt, TryStreamExt, stream};
 use itertools::Itertools;
 use serde_json::Value;
 use std::collections::{BTreeMap, HashMap, HashSet};
@@ -111,12 +111,15 @@ async fn build_cnf(
         })
         .unwrap_or_default();
 
-    let mut children_cnf = Vec::new();
-    for node in raw_nodes {
-        let child_cnf =
-            build_cnf(ctx, Some(&node.group_code), None, node.relation.as_deref()).await?;
-        children_cnf.push(child_cnf);
-    }
+    let child_futures = raw_nodes.into_iter().map(|node| {
+        let group_code = node.group_code;
+        let relation = node.relation;
+        async move { build_cnf(ctx, Some(&group_code), None, relation.as_deref()).await }
+    });
+    let children_cnf: Vec<Vec<Vec<Dependency>>> = futures::stream::iter(child_futures)
+        .buffer_unordered(10)
+        .try_collect()
+        .await?;
 
     if relation.unwrap() == "1" {
         let product = children_cnf.into_iter().multi_cartesian_product();
