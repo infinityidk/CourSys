@@ -31,7 +31,7 @@ pub async fn validate_tis_response(
 }
 
 fn delete_session_and_error(token: &str, state: &AppState) -> Result<Bytes, StatusCode> {
-    let _ = delete_session(state, token);
+    delete_session(state, token);
     Err(StatusCode::UNAUTHORIZED)
 }
 
@@ -73,7 +73,7 @@ pub async fn send_request<T: DeserializeOwned>(
     let response = req.send().await?;
     let bytes = validate_tis_response(response, token, state)
         .await
-        .map_err(|e| anyhow::anyhow!("TIS validation failed: {}", e))?;
+        .map_err(|e| anyhow::anyhow!("TIS validation failed: {e}"))?;
     let data = serde_json::from_slice(&bytes)?;
     Ok(data)
 }

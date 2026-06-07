@@ -14,10 +14,9 @@ pub fn get_era(code: Option<&str>, level: Option<&str>) -> String {
         return "G".to_string();
     }
 
-    code.and_then(|c| c.chars().find(|ch| ch.is_ascii_digit()))
+    code.and_then(|c| c.chars().find(char::is_ascii_digit))
         .filter(|&ch| ('1'..='5').contains(&ch))
-        .map(|ch| ch.to_string())
-        .unwrap_or_else(|| "O".to_string())
+        .map_or_else(|| "O".to_string(), |ch| ch.to_string())
 }
 
 pub fn parse_info(text: &str) -> Option<String> {
@@ -27,9 +26,8 @@ pub fn parse_info(text: &str) -> Option<String> {
 }
 
 pub fn parse_slots(html: Option<&str>) -> Vec<Slot> {
-    let text = match html {
-        Some(t) => t,
-        None => return Vec::new(),
+    let Some(text) = html else {
+        return Vec::new();
     };
 
     let mut raw_map: HashMap<(i32, (i32, i32), String), Vec<i32>> = HashMap::new();

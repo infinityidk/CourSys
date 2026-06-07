@@ -15,7 +15,7 @@ pub async fn keep_alive(state: &AppState, cookie: &str, token: &str) -> Result<(
 
     let _ = validate_tis_response(res, token, state)
         .await
-        .map_err(|e| anyhow::anyhow!("TIS validation failed with status: {}", e))?;
+        .map_err(|e| anyhow::anyhow!("TIS validation failed with status: {e}"))?;
 
     Ok(())
 }

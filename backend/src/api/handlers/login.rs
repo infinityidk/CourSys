@@ -22,10 +22,8 @@ pub async fn login_handler(
     })?;
     let is_prod = std::env::var("APP_ENV").unwrap_or_default() == "production";
     let secure_flag = if is_prod { "; Secure" } else { "" };
-    let cookie_str = format!(
-        "token={}; HttpOnly; Path=/; SameSite=Lax{}; Max-Age=28800",
-        my_token, secure_flag
-    );
+    let cookie_str =
+        format!("token={my_token}; HttpOnly; Path=/; SameSite=Lax{secure_flag}; Max-Age=28800");
 
     let mut headers = HeaderMap::new();
     headers.insert(SET_COOKIE, cookie_str.parse()?);

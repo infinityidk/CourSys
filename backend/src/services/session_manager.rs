@@ -16,13 +16,13 @@ pub fn get_session(state: &AppState, token: &str) -> Result<UserSession, anyhow:
         })
 }
 
-pub fn create_session(state: &AppState, session: UserSession) -> Result<String, anyhow::Error> {
+pub fn create_session(state: &AppState, session: UserSession) -> String {
     let token = Uuid::new_v4().to_string();
     state.session_store.insert(
         token.clone(),
-        (Instant::now() + Duration::from_secs(28800), session),
+        (Instant::now() + Duration::from_hours(8), session),
     );
-    Ok(token)
+    token
 }
 
 pub fn renew_session_ttl(state: &AppState, token: &str) -> Result<(), anyhow::Error> {
@@ -30,11 +30,10 @@ pub fn renew_session_ttl(state: &AppState, token: &str) -> Result<(), anyhow::Er
         .session_store
         .get_mut(token)
         .ok_or_else(|| anyhow::anyhow!("Session not found"))?;
-    entry.0 = Instant::now() + Duration::from_secs(28800);
+    entry.0 = Instant::now() + Duration::from_hours(8);
     Ok(())
 }
 
-pub fn delete_session(state: &AppState, token: &str) -> Result<(), anyhow::Error> {
+pub fn delete_session(state: &AppState, token: &str) {
     state.session_store.remove(token);
-    Ok(())
 }

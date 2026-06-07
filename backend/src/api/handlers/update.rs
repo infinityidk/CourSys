@@ -25,7 +25,7 @@ pub async fn update_handler(
     let now = Instant::now();
     let mut last_update = state.last_update_request.lock().await;
     if let Some(last) = *last_update
-        && now.duration_since(last) < Duration::from_secs(60)
+        && now.duration_since(last) < Duration::from_mins(1)
     {
         return Err(AppError::with_status(
             StatusCode::TOO_MANY_REQUESTS,

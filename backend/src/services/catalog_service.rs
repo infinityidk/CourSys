@@ -75,7 +75,7 @@ async fn build_cnf(
         let courses = ctx
             .leaves
             .get(code)
-            .ok_or_else(|| anyhow::anyhow!("Leaf group_code {} not found in leaves", code))?;
+            .ok_or_else(|| anyhow::anyhow!("Leaf group_code {code} not found in leaves"))?;
         return Ok(vec![courses.iter().cloned().collect()]);
     }
     let params = if let Some(code) = group_code {
@@ -99,7 +99,7 @@ async fn build_cnf(
     let raw_nodes: Vec<Node> = json["kzList1"]
         .as_array()
         .map(|arr| {
-            serde_json::from_value(Value::Array(arr.to_vec()))
+            serde_json::from_value(Value::Array(arr.clone()))
                 .inspect_err(|e| tracing::warn!("Failed to deserialize kzList1 as Vec<Node>: {e}"))
         })
         .transpose()?
@@ -403,7 +403,7 @@ pub async fn get_catalog(
             tracing::warn!("Failed to save deps file for {sem}: {e}");
         }
     });
-    let compressed = tokio::task::spawn_blocking(move || compress_catalog(raw_data))
+    let compressed = tokio::task::spawn_blocking(move || compress_catalog(&raw_data))
         .await
         .unwrap();
     let comp_cache = state.compressed_catalog.clone();
@@ -445,7 +445,9 @@ async fn save_deps_file(
                 k.clone(),
                 v.as_ref().map(|clauses| {
                     let mut clauses = clauses.clone();
-                    clauses.iter_mut().for_each(|c| c.sort());
+                    for c in &mut clauses {
+                        c.sort();
+                    }
                     clauses.sort();
                     clauses
                 }),

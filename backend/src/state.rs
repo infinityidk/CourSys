@@ -30,7 +30,7 @@ pub struct AppState {
 }
 
 impl AppState {
-    pub async fn new() -> Result<Self, anyhow::Error> {
+    pub fn new() -> Self {
         let http_client = reqwest::Client::builder()
             .cookie_store(false)
             .connect_timeout(Duration::from_secs(10))
@@ -43,7 +43,7 @@ impl AppState {
             .build()
             .expect("Failed to build global HTTP client");
 
-        Ok(Self {
+        Self {
             session_store: Arc::new(DashMap::new()),
             http_client,
             semester_cache: Arc::new(RwLock::new(None)),
@@ -52,6 +52,6 @@ impl AppState {
             catalog_info_cache: Arc::new(DashMap::new()),
             semester_locks: Arc::new(DashMap::new()),
             last_update_request: Arc::new(Mutex::new(None)),
-        })
+        }
     }
 }

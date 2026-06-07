@@ -36,8 +36,7 @@ pub async fn syllabus_handler(
     let response = state
         .http_client
         .get(format!(
-            "https://tis.sustech.edu.cn/kck/kcxxwh/downFj?fjflag=zwfj&kcid={}",
-            course_id
+            "https://tis.sustech.edu.cn/kck/kcxxwh/downFj?fjflag=zwfj&kcid={course_id}"
         ))
         .header(header::COOKIE, &auth.session.tis_cookie)
         .send()
@@ -68,7 +67,7 @@ pub async fn syllabus_handler(
     );
     headers.insert(
         header::CONTENT_DISPOSITION,
-        HeaderValue::from_str(&format!("inline; filename={}.pdf", code))?,
+        HeaderValue::from_str(&format!("inline; filename={code}.pdf"))?,
     );
 
     let stream = response.bytes_stream();

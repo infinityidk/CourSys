@@ -9,7 +9,7 @@ use std::time::Instant;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 #[derive(RustEmbed)]
-#[folder = "static"]
+#[folder = "../frontend/dist"]
 struct Assets;
 
 async fn serve_frontend(uri: axum::http::Uri) -> axum::response::Response {
@@ -43,13 +43,11 @@ async fn main() {
         .with(tracing_subscriber::fmt::layer())
         .init();
 
-    let state = AppState::new()
-        .await
-        .expect("Failed to initialize AppState");
+    let state = AppState::new();
 
     let session_store = state.session_store.clone();
     tokio::spawn(async move {
-        let mut interval = tokio::time::interval(std::time::Duration::from_secs(600));
+        let mut interval = tokio::time::interval(std::time::Duration::from_mins(10));
         loop {
             interval.tick().await;
             let now = Instant::now();

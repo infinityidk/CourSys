@@ -43,10 +43,10 @@ pub async fn get_current_semester(
 
     let mut current = None;
 
-    for (year_str, season_str) in seq.iter() {
+    for (year_str, season_str) in &seq {
         let json = query_catalog_page(state, cookie, token, year_str, season_str, 1, 1).await?;
         if !json["rwList"]["list"].as_array().unwrap().is_empty() {
-            current = Some(format!("{}{}", year_str, season_str));
+            current = Some(format!("{year_str}{season_str}"));
             break;
         }
     }

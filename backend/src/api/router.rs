@@ -35,7 +35,7 @@ pub fn create_router(state: AppState) -> Router {
         .route("/api/mod", post(modify_handler))
         .layer(TimeoutLayer::with_status_code(
             StatusCode::GATEWAY_TIMEOUT,
-            Duration::from_secs(600),
+            Duration::from_mins(10),
         ))
         .layer(DefaultBodyLimit::max(1024 * 10))
         .layer(CompressionLayer::new().compress_when(SizeAbove::new(1024)))
