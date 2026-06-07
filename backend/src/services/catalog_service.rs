@@ -23,14 +23,9 @@ struct BuildCnfContext<'a> {
 }
 
 fn from_list(list: &[Value], by_code: &mut HashMap<String, Vec<RawCourse>>) -> anyhow::Result<()> {
-    for item in list {
-        let code = item
-            .get("kcdm")
-            .and_then(|v| v.as_str())
-            .unwrap_or("?")
-            .to_string();
-        let raw: RawCourse = serde_path_to_error::deserialize(item.clone())
-            .map_err(|e| anyhow::anyhow!("course {}: {}", code, e))?;
+    let courses: Vec<RawCourse> = serde_json::from_value(Value::Array(list.to_vec()))
+        .context("Failed to deserialize catalog page list")?;
+    for raw in courses {
         by_code.entry(raw.code.clone()).or_default().push(raw);
     }
     Ok(())
@@ -54,10 +49,9 @@ async fn fetch_leaves(
         state,
     )
     .await?;
-    let list = json["list"].as_array().unwrap();
+    let list: Vec<Leaf> = serde_json::from_value(json["list"].clone())?;
     let mut leaves = HashMap::new();
-    for item in list {
-        let raw: Leaf = serde_json::from_value(item.clone()).context("Failed to parse Leaf")?;
+    for raw in list {
         leaves
             .entry(raw.group_code)
             .or_insert_with(HashSet::new)
@@ -105,10 +99,10 @@ async fn build_cnf(
     let raw_nodes: Vec<Node> = json["kzList1"]
         .as_array()
         .map(|arr| {
-            arr.iter()
-                .filter_map(|v| serde_json::from_value(v.clone()).ok())
-                .collect()
+            serde_json::from_value(Value::Array(arr.to_vec()))
+                .inspect_err(|e| tracing::warn!("Failed to deserialize kzList1 as Vec<Node>: {e}"))
         })
+        .transpose()?
         .unwrap_or_default();
 
     let child_futures = raw_nodes.into_iter().map(|node| {
