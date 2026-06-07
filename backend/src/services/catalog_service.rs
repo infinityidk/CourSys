@@ -5,7 +5,7 @@ use crate::utils::parser::{get_era, parse_info, parse_slots};
 use crate::utils::tis::{query_catalog_page, send_request};
 use anyhow::Context;
 use async_recursion::async_recursion;
-use futures::StreamExt;
+use futures::{StreamExt, stream};
 use itertools::Itertools;
 use serde_json::Value;
 use std::collections::{BTreeMap, HashMap, HashSet};
@@ -179,8 +179,11 @@ async fn fetch_catalog_full(
     let mut by_code = HashMap::new();
     let pages = first["rwList"]["pages"].as_i64().unwrap();
     from_list(first["rwList"]["list"].as_array().unwrap(), &mut by_code)?;
-    for page in 2..=pages {
-        let json = query_catalog_page(state, cookie, token, year, season, page, 500).await?;
+    let page_futures =
+        (2..=pages).map(|page| query_catalog_page(state, cookie, token, year, season, page, 500));
+    let mut st = stream::iter(page_futures).buffer_unordered(8);
+    while let Some(result) = st.next().await {
+        let json = result?;
         from_list(json["rwList"]["list"].as_array().unwrap(), &mut by_code)?;
     }
 
