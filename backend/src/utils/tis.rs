@@ -1,15 +1,15 @@
-use axum::http::StatusCode;
-use reqwest::Response;
-use serde::de::DeserializeOwned;
-
 use crate::services::session_manager::delete_session;
 use crate::state::AppState;
+use axum::http::StatusCode;
+use bytes::Bytes;
+use reqwest::Response;
+use serde::de::DeserializeOwned;
 
 pub async fn validate_tis_response(
     res: Response,
     token: &str,
     state: &AppState,
-) -> Result<String, StatusCode> {
+) -> Result<Bytes, StatusCode> {
     let status = res.status();
     let url = res.url().to_string();
 
@@ -17,19 +17,20 @@ pub async fn validate_tis_response(
         return delete_session_and_error(token, state);
     }
 
-    let text = res
-        .text()
+    let bytes = res
+        .bytes()
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
+    let text = std::str::from_utf8(&bytes).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     if text.contains("id=\"casLoginForm\"") || text.contains("cas.sustech.edu.cn/cas/login") {
         return delete_session_and_error(token, state);
     }
 
-    Ok(text)
+    Ok(bytes)
 }
 
-fn delete_session_and_error(token: &str, state: &AppState) -> Result<String, StatusCode> {
+fn delete_session_and_error(token: &str, state: &AppState) -> Result<Bytes, StatusCode> {
     let _ = delete_session(state, token);
     Err(StatusCode::UNAUTHORIZED)
 }
@@ -70,9 +71,9 @@ pub async fn send_request<T: DeserializeOwned>(
     state: &AppState,
 ) -> Result<T, anyhow::Error> {
     let response = req.send().await?;
-    let text = validate_tis_response(response, token, state)
+    let bytes = validate_tis_response(response, token, state)
         .await
         .map_err(|e| anyhow::anyhow!("TIS validation failed: {}", e))?;
-    let data = serde_json::from_str(&text)?;
+    let data = serde_json::from_slice(&bytes)?;
     Ok(data)
 }

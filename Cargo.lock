@@ -187,6 +187,7 @@ dependencies = [
  "axum",
  "axum-extra",
  "brotli",
+ "bytes",
  "chrono",
  "dashmap",
  "futures",
