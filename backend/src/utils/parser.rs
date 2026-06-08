@@ -7,7 +7,7 @@ static SLOT_REGEX: LazyLock<Regex> = LazyLock::new(|| {
         .unwrap()
 });
 static INFO_REGEX: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"选课要求:([\s\S]*?)</p>").unwrap());
+    LazyLock::new(|| Regex::new(r".*选课要求:\s*([\s\S]*?)</p>").unwrap());
 
 pub fn get_era(code: Option<&str>, level: Option<&str>) -> String {
     if level == Some("2") {
