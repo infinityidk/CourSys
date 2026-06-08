@@ -2,4 +2,4 @@
 import type { Group } from "./Group";
 import type { Slot } from "./Slot";
 
-export type Class = { seq: string, teacher: string | null, language: string | null, allowed: string | null, denied: string | null, info: string | null, slots: Array<Slot>, groups: Array<Group>, };
+export type Class = { seq: string, teacher: string | null, language: string | null, allowed: string | null, denied: string | null, info: string | null, note: string | null, slots: Array<Slot>, groups: Array<Group>, };

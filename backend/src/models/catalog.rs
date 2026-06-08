@@ -55,6 +55,8 @@ pub struct RawCourse {
     pub graduate_capacity: Option<String>,
     #[serde(rename = "jszws")]
     pub seats: Option<String>,
+    #[serde(rename = "bz")]
+    pub note: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -109,6 +111,7 @@ pub struct Class {
     pub allowed: Option<String>,
     pub denied: Option<String>,
     pub info: Option<String>,
+    pub note: Option<String>,
     pub slots: Vec<Slot>,
     pub groups: Vec<Group>,
 }

@@ -256,6 +256,7 @@ async fn fetch_catalog_full(
                 allowed: class_raw.allowed.clone(),
                 denied: class_raw.denied.clone(),
                 info: class_raw.info.as_deref().and_then(parse_info),
+                note: class_raw.note.clone(),
                 slots: class_slots,
                 groups,
             };
