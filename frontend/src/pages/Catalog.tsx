@@ -10,6 +10,7 @@ import PlannerSidebar from './Planner/PlannerSidebar'
 import type { Course } from '../bindings/Course'
 import type { Class } from '../bindings/Class'
 import type { Group } from '../bindings/Group'
+import { pinyin } from 'pinyin-pro'
 
 const ERA_COLORS: Record<string, string> = {
   "1": "text-emerald-400 border-emerald-900 bg-emerald-950/30",
@@ -23,6 +24,18 @@ const ERA_COLORS: Record<string, string> = {
 
 const PERIOD_MAP: Record<string, number[]> = {
   "1-2": [1, 2], "3-4": [3, 4], "5-6": [5, 6], "7-8": [7, 8], "9-10": [9, 10], "11": [11]
+}
+
+function getPinyinVariants(text: string): string[] {
+  if (!text) return []
+  const full = pinyin(text, { toneType: 'none', type: 'array' }).join('')
+  const abbrev = pinyin(text, { pattern: 'first', type: 'array' }).join('')
+  return [full, abbrev]
+}
+
+function matchText(term: string, text: string): boolean {
+  const lower = text.toLowerCase()
+  return lower.includes(term) || getPinyinVariants(text).some(v => v.includes(term))
 }
 
 // Build cart option from a Group
@@ -446,7 +459,8 @@ export default function Catalog({ searchTerm, showFilters }: { searchTerm: strin
 
   const filteredData = useMemo(() => {
     if (!data) return []
-    const term = searchTerm.toLowerCase().trim()
+    const term = searchTerm.trim().toLowerCase()
+    const hasTerm = term.length > 0
     const depts = new Set(selDepts), cats = new Set(selCats), natures = new Set(selNatures), eras = new Set(selEras), creds = new Set(selCredits)
     const days = new Set(selDays), periods = new Set(selPeriods.flatMap(p => PERIOD_MAP[p] || []))
     const hasTimeFilter = days.size > 0 || periods.size > 0
@@ -459,13 +473,15 @@ export default function Catalog({ searchTerm, showFilters }: { searchTerm: strin
       if (eras.size && !eras.has(c.era)) return res
       if (creds.size && !creds.has(c.credits)) return res
 
-      const courseMatch = !term || c.code.toLowerCase().includes(term) || c.name.toLowerCase().includes(term)
-      let teacherMatch = false
-
+      const courseMatch = !hasTerm || matchText(term, c.code) || matchText(term, c.name)
       const filteredClasses = c.classes.map((cls): Class | null => {
         if (hideForbidden && cls.denied) return null
-        const tMatch = cls.teacher?.toLowerCase().includes(term) || false
-        if (tMatch) teacherMatch = true
+
+        let clsTeacherMatch = false, clsNoteMatch = false
+        if (hasTerm) {
+          if (cls.teacher) clsTeacherMatch = matchText(term, cls.teacher)
+          if (cls.note) clsNoteMatch = matchText(term, cls.note)
+        }
 
         const validGroups = cls.groups.filter(g => {
           if (hasTimeFilter) {
@@ -477,13 +493,17 @@ export default function Catalog({ searchTerm, showFilters }: { searchTerm: strin
             )
             if (!timeSubset) return false
           }
-          const gTeacherMatch = g.teacher?.toLowerCase().includes(term) || false
-          if (gTeacherMatch) teacherMatch = true
-          return !term || courseMatch || tMatch || gTeacherMatch
+          let gTeacherMatch = false
+          if (hasTerm && g.teacher) {
+            gTeacherMatch = matchText(term, g.teacher)
+          }
+          return !hasTerm || courseMatch || clsTeacherMatch || gTeacherMatch || clsNoteMatch
         })
 
         return validGroups.length > 0 ? { ...cls, groups: validGroups } : null
       }).filter((cls): cls is Class => cls !== null)
+
+      if (hasTerm && !courseMatch && filteredClasses.length === 0) return res
 
       // Apply conflict filtering
       const finalClasses = hideConflict
@@ -492,10 +512,7 @@ export default function Catalog({ searchTerm, showFilters }: { searchTerm: strin
           return nonDeadGroups.length > 0 ? { ...cls, groups: nonDeadGroups } : null
         }).filter((cls): cls is Class => cls !== null)
         : filteredClasses
-
-      if ((courseMatch || teacherMatch) && finalClasses.length > 0) {
-        res.push({ ...c, classes: finalClasses })
-      }
+      if (finalClasses.length > 0) res.push({ ...c, classes: finalClasses })
       return res
     }, [])
   }, [data, searchTerm, hideForbidden, hideConflict, selDepts, selCats, selNatures, selEras, selCredits, selDays, selPeriods, cart, solutions, validIds])
