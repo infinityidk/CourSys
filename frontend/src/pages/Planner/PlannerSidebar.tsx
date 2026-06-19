@@ -67,12 +67,32 @@ function GroupCard({ groupKey }: { groupKey: string }) {
                 <div className={`text-xs font-bold truncate ${isDead ? "text-red-400/80 line-through decoration-red-500/50" : "text-zinc-300"}`}>
                   {opt.name}
                 </div>
-                <div className="flex items-center gap-2 text-[10px]">
-                  <span className={`truncate ${isDead ? "text-red-500/50" : "text-zinc-500"}`}>{opt.teacher}</span>
-                </div>
-                <div className={`text-[9px] font-mono leading-tight ${isDead ? "text-red-900/50" : "text-zinc-600"}`}>
-                  {opt.slots.map((s, i) => <div key={i}>{formatSlot(s)}</div>)}
-                </div>
+                {opt.classSlots && opt.groupSlots ? (
+                  <div className="space-y-1">
+                    {opt.classSlots.length > 0 && (
+                      <div className={`text-[9px] font-mono ${isDead ? "text-red-400/50" : "text-blue-400/90"}`}>
+                        <div className="font-bold mb-0.5">理论 · {opt.classTeacher || '-'}</div>
+                        {opt.classSlots.map((s, i) => <div key={'c' + i}>{formatSlot(s)}</div>)}
+                      </div>
+                    )}
+                    {opt.groupSlots.length > 0 && (
+                      <div className={`text-[9px] font-mono ${isDead ? "text-red-400/50" : "text-amber-400/90"}`}>
+                        <div className="font-bold mb-0.5">实践 · {opt.groupTeacher || '-'}</div>
+                        {opt.groupSlots.map((s, i) => <div key={'g' + i}>{formatSlot(s)}</div>)}
+                      </div>
+                    )}
+                  </div>) : (
+                  <>
+                    <div className="flex items-center gap-2 text-[10px]">
+                      <span className={`truncate ${isDead ? "text-red-500/50" : "text-zinc-500"}`}>
+                        {opt.classTeacher || opt.groupTeacher || ''}
+                      </span>
+                    </div>
+                    <div className={`text-[9px] font-mono leading-tight ${isDead ? "text-red-900/50" : "text-zinc-600"}`}>
+                      {opt.slots.map((s, i) => <div key={i}>{formatSlot(s)}</div>)}
+                    </div>
+                  </>
+                )}
               </div>
               <button
                 onClick={() => removeCartOption(groupKey, opt.id)}
@@ -132,8 +152,8 @@ export default function PlannerSidebar() {
       {/* Footer */}
       <div className="p-4 border-t border-zinc-900 bg-zinc-950/50 backdrop-blur-sm space-y-3 shrink-0">
         <div className={`text-center p-3 rounded-xl text-xs font-bold font-mono transition-colors ${cartKeys.length === 0 ? "text-zinc-600 bg-zinc-900" :
-            solutions.length > 0 ? "text-emerald-400 bg-emerald-950/20 border border-emerald-900/30" :
-              "text-red-400 bg-red-950/20 border border-red-900/30 animate-pulse"
+          solutions.length > 0 ? "text-emerald-400 bg-emerald-950/20 border border-emerald-900/30" :
+            "text-red-400 bg-red-950/20 border border-red-900/30 animate-pulse"
           }`}>
           {cartKeys.length === 0 ? "等待添加课程..." : solutions.length > 0 ? `${solutions.length} 种可行方案` : "方案冲突 / 无解"}
         </div>

@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react'
 import { useStore } from '../../store'
+import type { Slot } from '../../bindings/Slot'
 
 
 const PERIOD_ROWS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
@@ -37,11 +38,15 @@ export default function SolutionModal({ onClose }: { onClose: () => void }) {
   }, [currentSolution, groups])
 
   const gridItems = useMemo(() => {
-    return items.flatMap(item =>
-      item.slots
-        .filter((s: any) => s.weeks.includes(week))
-        .map((s: any) => ({ ...s, meta: item }))
-    )
+    return items.flatMap(item => {
+      if (item.classSlots && item.groupSlots) {
+        return [
+          ...item.classSlots.filter((s: Slot) => s.weeks.includes(week)).map((s: Slot) => ({ ...s, meta: item, kind: 'theory' as const, teacher: item.classTeacher })),
+          ...item.groupSlots.filter((s: Slot) => s.weeks.includes(week)).map((s: Slot) => ({ ...s, meta: item, kind: 'practice' as const, teacher: item.groupTeacher }))
+        ]
+      }
+      return item.slots.filter((s: Slot) => s.weeks.includes(week)).map((s: Slot) => ({ ...s, meta: item, teacher: item.classTeacher || item.groupTeacher }))
+    })
   }, [items, week])
 
   const totalCredits = useMemo(() => items.reduce((sum, { credits }) => sum + (+credits || 0), 0), [items]);
@@ -129,18 +134,26 @@ export default function SolutionModal({ onClose }: { onClose: () => void }) {
               const rowSpan = item.period[1] - item.period[0] + 1
               const colStart = item.day + 1
 
+              const isTheory = item.kind === 'theory'
+              const isPractice = item.kind === 'practice'
               return (
                 <div
                   key={i}
                   style={{ gridRow: `${rowStart} / span ${rowSpan}`, gridColumn: `${colStart}` }}
                   className={`m-1 p-3 rounded-xl border-l-4 shadow-lg flex flex-col justify-center gap-1 overflow-hidden transition-transform hover:scale-[1.02] hover:z-10 cursor-default ${COLORS[item.meta._groupIndex % COLORS.length]}`}
                 >
-                  <div className="text-xs font-black text-white leading-snug line-clamp-2">
-                    {item.meta.name}
+                  <div className="flex items-center gap-1.5">
+                    <div className="text-xs font-black text-white leading-snug line-clamp-2">{item.meta.name}</div>
+                    {isTheory && <span className="shrink-0 text-[8px] font-black text-blue-400 bg-blue-400/10 px-1.5 py-0.5 rounded">理论</span>}
+                    {isPractice && <span className="shrink-0 text-[8px] font-black text-amber-400 bg-amber-400/10 px-1.5 py-0.5 rounded">实践</span>}
                   </div>
                   <div className="flex items-center gap-2 text-[10px] font-mono text-zinc-400">
                     <span className="bg-black/40 px-1.5 py-0.5 rounded text-zinc-300">{item.room}</span>
-                    {item.meta.teacher && <span className="truncate opacity-80">{item.meta.teacher}</span>}
+                    {item.teacher && (
+                      <span className={`truncate ${isTheory ? 'text-blue-400' : isPractice ? 'text-amber-400' : 'opacity-80'}`}>
+                        {item.teacher}
+                      </span>
+                    )}
                   </div>
                 </div>
               )

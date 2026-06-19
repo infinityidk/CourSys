@@ -40,13 +40,16 @@ function matchText(term: string, text: string): boolean {
 
 // Build cart option from a Group
 function makeCartOption(cls: Class, g: Group, c: Course): CartOption {
+  const multi = cls.groups.length > 1
   return {
     id: g.id,
     code: c.code,
     name: `${c.name} ${cls.seq}班-${g.seq}组`,
-    teacher: g.teacher || cls.teacher || '',
+    classTeacher: cls.teacher,
+    groupTeacher: g.teacher,
     slots: [...(cls.slots || []), ...(g.slots || [])],
-    credits: c.credits
+    credits: c.credits,
+    ...(multi && { classSlots: cls.slots || [], groupSlots: g.slots || [] })
   }
 }
 
