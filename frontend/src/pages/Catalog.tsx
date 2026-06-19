@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useMemo, memo } from 'react'
+import { useEffect, useRef, useState, useMemo, memo, useLayoutEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../api'
@@ -44,13 +44,33 @@ function AddDropdown({ btnRef, onClose, courseCode, courseName, opts }: {
   const { cart, addToGroup } = useStore()
   const cartKeys = Object.keys(cart)
   const menuRef = useRef<HTMLDivElement>(null)
+  const [ready, setReady] = useState(false)
   const [pos, setPos] = useState({ top: 0, left: 0 })
 
-  useEffect(() => {
-    if (btnRef.current) {
-      const r = btnRef.current.getBoundingClientRect()
-      setPos({ top: r.bottom + 4, left: Math.min(r.right - 160, window.innerWidth - 170) })
+  useLayoutEffect(() => {
+    if (!btnRef.current || !menuRef.current) return
+    const r = btnRef.current.getBoundingClientRect()
+    const menuEl = menuRef.current
+    const menuHeight = menuEl.offsetHeight
+    const menuWidth = menuEl.offsetWidth
+    const MARGIN = 8
+    let top: number
+    if (window.innerHeight - r.bottom >= menuHeight + MARGIN) {
+      top = r.bottom + 4
+    } else {
+      top = r.top - menuHeight - 4
     }
+    top = Math.max(MARGIN, Math.min(top, window.innerHeight - menuHeight - MARGIN))
+    let left = r.right - menuWidth
+    if (left < MARGIN) left = MARGIN
+    if (left + menuWidth > window.innerWidth - MARGIN) {
+      left = window.innerWidth - menuWidth - MARGIN
+    }
+    setPos({ top, left })
+    setReady(true)
+  }, [])
+
+  useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(e.target as Node) &&
         btnRef.current && !btnRef.current.contains(e.target as Node)) onClose()
@@ -60,7 +80,7 @@ function AddDropdown({ btnRef, onClose, courseCode, courseName, opts }: {
   }, [])
 
   return createPortal(
-    <div ref={menuRef} className="fixed z-[9999] bg-zinc-900 border border-zinc-700 rounded-xl shadow-2xl p-2 min-w-[160px] animate-fade-in-up" style={{ top: pos.top, left: pos.left }}>
+    <div ref={menuRef} className="fixed z-[9999] bg-zinc-900 border border-zinc-700 rounded-xl shadow-2xl p-2 min-w-[160px] animate-fade-in-up" style={{ top: pos.top, left: pos.left, visibility: ready ? 'visible' : 'hidden', opacity: ready ? 1 : 0, transition: 'opacity 0.15s' }}>
       <button
         onClick={() => { addToGroup(courseCode, courseName, null, opts); onClose() }}
         className="w-full text-left px-3 py-2 text-[10px] font-bold text-emerald-400 hover:bg-zinc-800 rounded-lg transition-colors"
