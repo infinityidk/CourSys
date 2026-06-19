@@ -241,6 +241,11 @@ const CourseCard = memo(({ c, cart, validIds, solutions, selectMut, updateMut }:
                 <AddClassButton courseCode={c.code} courseName={c.name} cls={cls} c={c} />
               </div>
               {cls.info && <div className="mb-2 px-1 text-[9px] font-mono text-blue-400 leading-relaxed"><span className="font-black mr-1">公告:</span>{cls.info}</div>}
+              {cls.note && (
+                <div className="mb-2 px-1 text-[9px] font-mono text-amber-400/80 leading-relaxed">
+                  <span className="font-black mr-1">备注:</span>{cls.note}
+                </div>
+              )}
               {(cls.allowed || cls.denied) && (
                 <div className="mb-3 px-1 text-[9px] font-mono leading-tight">
                   {cls.allowed && <div className="text-zinc-500"><span className="text-emerald-400 mr-1">面向:</span>{cls.allowed}</div>}
