@@ -2,30 +2,61 @@ import { useState, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../api'
 import { useStore } from '../store'
-import { formatWeeks } from '../utils/format'
+import { compareSemesters, formatSemester, formatWeeks, generateSemesterRange } from '../utils/format'
 import type { ScheduleResponse } from '../bindings/ScheduleResponse'
 
 const DAYS = ['一', '二', '三', '四', '五', '六', '日']
 
 export default function Timetable() {
-  const { semester, user } = useStore()
+  const { semester: globalSem, user } = useStore()
+  const [selectedSem, setSelectedSem] = useState(globalSem)
   const qc = useQueryClient()
   const [filter, setFilter] = useState('all')
 
+  const gradeError = useMemo(() => {
+    if (!user?.grade || !globalSem) return null
+    const start = `${user.grade}-${Number(user.grade) + 1}1`
+    try {
+      if (compareSemesters(start, globalSem) > 0) {
+        return `入学学期 ${formatSemester(start)} 晚于当前学期，数据异常`
+      }
+    } catch {
+      return '学期格式错误，请联系管理员'
+    }
+    return null
+  }, [user, globalSem])
+
+  const semesterOptions = useMemo(() => {
+    if (gradeError || !user?.grade) return []
+    const start = `${user.grade}-${Number(user.grade) + 1}1`
+    return generateSemesterRange(start, globalSem).reverse()
+  }, [user, gradeError, globalSem])
+
+  if (gradeError) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="bg-red-950/30 border border-red-500/30 rounded-2xl p-8 text-center">
+          <p className="text-red-400 font-black text-lg">{gradeError}</p>
+          <p className="text-red-300/50 text-xs mt-2 font-mono">无法生成学期列表，请重新登录或联系管理员</p>
+        </div>
+      </div>
+    )
+  }
+
   const { data, isLoading } = useQuery<[string, ScheduleResponse[]]>({
-    queryKey: ['schedule', semester],
-    queryFn: async () => (await api.get(`/schedule?semester=${semester}`)).data,
-    enabled: !!semester,
+    queryKey: ['schedule', selectedSem],
+    queryFn: async () => (await api.get(`/schedule?semester=${selectedSem}`)).data,
+    enabled: !!selectedSem,
   })
 
   const quitMut = useMutation({
     mutationFn: (id: string) => api.post('/quit', new URLSearchParams({ id, level: user?.level || '1' })),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['schedule', semester] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['schedule', selectedSem] }),
   })
 
   const modifyMut = useMutation({
     mutationFn: (params: { id: string; coin: number }) => api.post('/mod', new URLSearchParams({ id: params.id, coin: params.coin.toString(), level: user?.level || '1' })),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['schedule', semester] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['schedule', selectedSem] }),
   })
 
   const courses = data?.[1] || []
@@ -59,6 +90,25 @@ export default function Timetable() {
 
   return (
     <div className="h-full overflow-y-auto custom-scrollbar">
+      <div className="flex items-center gap-4 mb-2">
+        <div className="relative">
+          <select
+            value={selectedSem}
+            onChange={(e) => setSelectedSem(e.target.value)}
+            className="appearance-none bg-zinc-900 border border-zinc-800 rounded-xl pl-4 pr-8 py-2 text-sm font-bold text-white outline-none focus:border-blue-500 cursor-pointer"
+          >
+            {semesterOptions.map(opt => (
+              <option key={opt} value={opt}>{formatSemester(opt)}</option>
+            ))}
+          </select>
+          <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
+            <svg className="w-4 h-4 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+            </svg>
+          </div>
+        </div>
+      </div>
+
       <div className="space-y-6 p-1">
         {/* Coins display */}
         <div className="flex items-center gap-4 flex-wrap">

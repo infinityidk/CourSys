@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../api'
 import { useStore, type CartOption } from '../store'
-import { formatSlot, formatEra } from '../utils/format'
+import { formatSlot, formatEra, getPreviousSemesters, formatSemester } from '../utils/format'
 import { createMask, hasConflict } from '../utils/bitwise'
 import SolverWorker from '../utils/worker?worker'
 import PlannerSidebar from './Planner/PlannerSidebar'
@@ -374,7 +374,9 @@ const VirtualMasonry = memo(({ data, resetKey, ...props }: { data: Course[], res
 })
 
 export default function Catalog({ searchTerm, showFilters }: { searchTerm: string, showFilters: boolean }) {
-  const { semester, cart, validIds, solutions, blocked, setValidIds, setSolutions } = useStore()
+  const { semester: globalSem, cart, validIds, solutions, blocked, setValidIds, setSolutions } = useStore()
+  const [catSemester, setCatSemester] = useState(globalSem)
+  const semesterOptions = useMemo(() => (globalSem ? getPreviousSemesters(globalSem, 4) : []), [globalSem])
   const worker = useRef<Worker | null>(null)
   const qc = useQueryClient()
 
@@ -390,12 +392,12 @@ export default function Catalog({ searchTerm, showFilters }: { searchTerm: strin
   const [selPeriods, setSelPeriods] = useState<string[]>([])
 
   const { data } = useQuery<Course[]>({
-    queryKey: ['catalog', semester],
+    queryKey: ['catalog', catSemester],
     queryFn: async () => {
-      const res = await api.get(`/catalog?semester=${semester}`)
+      const res = await api.get(`/catalog?semester=${catSemester}`)
       return Array.isArray(res.data) ? res.data : Object.values(res.data)
     },
-    enabled: !!semester
+    enabled: !!catSemester
   })
 
   useEffect(() => {
@@ -425,7 +427,7 @@ export default function Catalog({ searchTerm, showFilters }: { searchTerm: strin
 
   const updateMut = useMutation({
     mutationFn: (code: string) => api.post('/update', { code }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['catalog', semester] })
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['catalog', catSemester] })
   })
 
   const toggle = <T,>(set: Set<T>, val: T) => { const n = new Set(set); n.has(val) ? n.delete(val) : n.add(val); return Array.from(n) }
@@ -558,9 +560,33 @@ export default function Catalog({ searchTerm, showFilters }: { searchTerm: strin
         </div>
       )}
 
+      <div className="flex items-center gap-2 px-1 pb-2">
+        <div className="relative">
+          <select
+            value={catSemester}
+            onChange={(e) => setCatSemester(e.target.value)}
+            disabled={semesterOptions.length === 0}
+            className="appearance-none bg-zinc-900 border border-zinc-800 rounded-xl pl-4 pr-8 py-2 text-sm font-bold text-white outline-none focus:border-blue-500 disabled:opacity-50 cursor-pointer"
+          >
+            {semesterOptions.length === 0 ? (
+              <option value="">加载中...</option>
+            ) : (
+              semesterOptions.map(opt => (
+                <option key={opt} value={opt}>{formatSemester(opt)}</option>
+              ))
+            )}
+          </select>
+          <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
+            <svg className="w-4 h-4 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+            </svg>
+          </div>
+        </div>
+      </div>
+
       <div className="flex-1 min-h-0 overflow-hidden flex gap-6">
         <div className="flex-1 min-w-0 h-full">
-          <VirtualMasonry data={filteredData} resetKey={semester} cart={cart} validIds={validIds} solutions={solutions} selectMut={selectMut} updateMut={updateMut} />
+          <VirtualMasonry data={filteredData} resetKey={catSemester} cart={cart} validIds={validIds} solutions={solutions} selectMut={selectMut} updateMut={updateMut} />
         </div>
         <div className="w-80 h-full shrink-0">
           <PlannerSidebar />
