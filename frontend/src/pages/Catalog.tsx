@@ -11,6 +11,7 @@ import type { Course } from '../bindings/Course'
 import type { Class } from '../bindings/Class'
 import type { Group } from '../bindings/Group'
 import { pinyin } from 'pinyin-pro'
+import type { UserInfoResponse } from '../bindings/UserInfoResponse'
 
 const ERA_COLORS: Record<string, string> = {
   "1": "text-emerald-400 border-emerald-900 bg-emerald-950/30",
@@ -24,6 +25,11 @@ const ERA_COLORS: Record<string, string> = {
 
 const PERIOD_MAP: Record<string, number[]> = {
   "1-2": [1, 2], "3-4": [3, 4], "5-6": [5, 6], "7-8": [7, 8], "9-10": [9, 10], "11": [11]
+}
+
+const CONSTRAINT_KEY_MAP: Record<string, keyof UserInfoResponse> = {
+  '层次': 'level', '年级': 'grade', '学院': 'department', '专业': 'major',
+  'grade': 'grade', 'department': 'department', 'major': 'major',
 }
 
 function getPinyinVariants(text: string): string[] {
@@ -51,6 +57,28 @@ function makeCartOption(cls: Class, g: Group, c: Course): CartOption {
     credits: c.credits,
     ...(multi && { classSlots: cls.slots || [], groupSlots: g.slots || [] })
   }
+}
+
+function parseConstraint(raw: string | null): Record<string, string>[] {
+  if (!raw) return []
+  return raw.split(',').filter(g => g.trim()).map(g => {
+    const o: Record<string, string> = {}
+    g.split(';').forEach(p => { const i = p.indexOf(':'); if (i > 0) o[p.slice(0, i).trim()] = p.slice(i + 1).trim() })
+    return o
+  })
+}
+
+function matchGroup(g: Record<string, string>, user: UserInfoResponse): boolean {
+  return Object.entries(g).every(([k, v]) => { const key = CONSTRAINT_KEY_MAP[k]; return key ? user[key] === v : false })
+}
+
+function isDenied(raw: string | null, user: UserInfoResponse): boolean {
+  return parseConstraint(raw).some(g => matchGroup(g, user))
+}
+
+function isAllowed(raw: string | null, user: UserInfoResponse): boolean {
+  const groups = parseConstraint(raw)
+  return groups.length === 0 || groups.some(g => matchGroup(g, user))
 }
 
 // Portaled dropdown for add-to-group (avoids clipping by overflow:hidden parents)
@@ -390,7 +418,7 @@ const VirtualMasonry = memo(({ data, resetKey, ...props }: { data: Course[], res
 })
 
 export default function Catalog({ searchTerm, showFilters }: { searchTerm: string, showFilters: boolean }) {
-  const { semester: globalSem, cart, validIds, solutions, blocked, setValidIds, setSolutions } = useStore()
+  const { semester: globalSem, cart, validIds, solutions, blocked, user, setValidIds, setSolutions } = useStore()
   const [catSemester, setCatSemester] = useState(globalSem)
   const semesterOptions = useMemo(() => (globalSem ? getPreviousSemesters(globalSem, 4) : []), [globalSem])
   const worker = useRef<Worker | null>(null)
@@ -469,7 +497,7 @@ export default function Catalog({ searchTerm, showFilters }: { searchTerm: strin
     const hasTimeFilter = days.size > 0 || periods.size > 0
 
     return data.reduce<Course[]>((res, c) => {
-      if (hideForbidden && c.classes.every(cls => cls.denied)) return res
+      if (hideForbidden && user?.level === '2' && c.era !== 'G') return res
       if (depts.size && !depts.has(c.department)) return res
       if (cats.size && !cats.has(c.category)) return res
       if (natures.size && (!c.nature || !natures.has(c.nature))) return res
@@ -478,8 +506,9 @@ export default function Catalog({ searchTerm, showFilters }: { searchTerm: strin
 
       const courseMatch = !hasTerm || matchText(term, c.code) || matchText(term, c.name)
       const filteredClasses = c.classes.map((cls): Class | null => {
-        if (hideForbidden && cls.denied) return null
-
+        if (hideForbidden && user) {
+          if (isDenied(cls.denied, user) || !isAllowed(cls.allowed, user)) return null
+        }
         let clsTeacherMatch = false, clsNoteMatch = false
         if (hasTerm) {
           if (cls.teacher) clsTeacherMatch = matchText(term, cls.teacher)
@@ -527,7 +556,7 @@ export default function Catalog({ searchTerm, showFilters }: { searchTerm: strin
         <div className="bg-zinc-950 border-b border-zinc-800 p-4 shrink-0 shadow-xl overflow-y-auto max-h-[25vh] custom-scrollbar flex flex-wrap gap-6 items-start">
           {/* Switches */}
           <div className="flex flex-wrap gap-2">
-            {[{ l: "隐藏受限课程", v: hideForbidden, s: setHideForbidden }, { l: "忽略冲突", v: hideConflict, s: setHideConflict }].map(f => (
+            {[{ l: "权限过滤", v: hideForbidden, s: setHideForbidden }, { l: "冲突过滤", v: hideConflict, s: setHideConflict }].map(f => (
               <button key={f.l} onClick={() => f.s(!f.v)} className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${f.v ? "bg-blue-500 border-blue-500 text-white" : "bg-zinc-900 border-zinc-800 text-zinc-500 hover:text-zinc-300"}`}>{f.l}</button>
             ))}
           </div>
