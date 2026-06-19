@@ -12,6 +12,7 @@
   "dependencies": {
     "@tanstack/react-query": "^5.101.0",
     "axios": "^1.18.0",
+    "html-to-image": "^1.11.13",
     "pinyin-pro": "^3.28.1",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",

@@ -1,4 +1,6 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useRef } from 'react'
+import { toPng } from 'html-to-image'
+import { formatSemester } from '../../utils/format'
 import { useStore } from '../../store'
 import type { Slot } from '../../bindings/Slot'
 
@@ -15,9 +17,12 @@ const COLORS = [
 ]
 
 export default function SolutionModal({ onClose }: { onClose: () => void }) {
-  const { solutions, cart } = useStore()
+  const { solutions, cart, semester } = useStore()
   const [idx, setIdx] = useState(0)
   const [week, setWeek] = useState(1)
+
+  const exportRef = useRef<HTMLDivElement>(null)
+  const gridRef = useRef<HTMLDivElement>(null)
 
   const groups = Object.values(cart)
   const currentSolution = solutions[idx]
@@ -37,6 +42,26 @@ export default function SolutionModal({ onClose }: { onClose: () => void }) {
     return list
   }, [currentSolution, groups])
 
+  const handleExport = async () => {
+    if (!exportRef.current || !gridRef.current) return
+    const grid = gridRef.current
+    const prev = grid.style.overflow
+    grid.style.overflow = 'visible'
+    try {
+      const dataUrl = await toPng(exportRef.current, {
+        backgroundColor: '#09090b',
+        pixelRatio: 2,
+        filter: (node) => !node.classList?.contains('export-ignore'),
+      })
+      const a = document.createElement('a')
+      a.href = dataUrl
+      a.download = `方案${idx + 1}.png`
+      a.click()
+    } finally {
+      grid.style.overflow = prev
+    }
+  }
+
   const gridItems = useMemo(() => {
     return items.flatMap(item => {
       if (item.classSlots && item.groupSlots) {
@@ -52,19 +77,17 @@ export default function SolutionModal({ onClose }: { onClose: () => void }) {
   const totalCredits = useMemo(() => items.reduce((sum, { credits }) => sum + (+credits || 0), 0), [items]);
 
   return (
-    <div className="fixed inset-0 z-[100] bg-zinc-950/95 backdrop-blur-md flex flex-col animate-fade-in-up" onClick={e => e.stopPropagation()}>
+    <div ref={exportRef} className="fixed inset-0 z-[100] bg-zinc-950/95 backdrop-blur-md flex flex-col animate-fade-in-up" onClick={e => e.stopPropagation()}>
       <div className="flex justify-between items-center px-8 py-5 border-b border-zinc-800 bg-zinc-950 shrink-0">
         <div className="flex items-center gap-6">
-          <h2 className="text-3xl font-black text-white italic tracking-tighter">PLANNER RESULTS</h2>
+          <div className="flex flex-col justify-center">
+            <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">学期</span>
+            <span className="text-lg font-mono font-bold text-white">{formatSemester(semester)}</span>
+          </div>
           <div className="h-8 w-px bg-zinc-800"></div>
           <div className="flex flex-col justify-center">
             <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">学分</span>
             <span className="text-xl font-mono font-bold text-white">{totalCredits}</span>
-          </div>
-          <div className="h-8 w-px bg-zinc-800"></div>
-          <div className="flex flex-col justify-center">
-            <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Available Solutions</span>
-            <span className="text-xl font-mono font-bold text-emerald-500">{solutions.length}</span>
           </div>
         </div>
 
@@ -79,7 +102,7 @@ export default function SolutionModal({ onClose }: { onClose: () => void }) {
             <span className="text-lg font-black text-white w-8 text-center">{week}</span>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 export-ignore">
             <button
               onClick={() => setIdx(i => Math.max(0, i - 1))}
               disabled={idx === 0}
@@ -101,14 +124,18 @@ export default function SolutionModal({ onClose }: { onClose: () => void }) {
             </button>
           </div>
 
-          <button onClick={onClose} className="p-3 rounded-full bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-all">
+          <button onClick={handleExport} className="p-3 rounded-full bg-blue-500/10 text-blue-500 hover:bg-blue-500 hover:text-white transition-all export-ignore" title="导出">
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+          </button>
+
+          <button onClick={onClose} className="p-3 rounded-full bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-all export-ignore">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
           </button>
         </div>
       </div>
 
       <div className="flex-1 p-6 overflow-hidden flex justify-center">
-        <div className="w-full max-w-[1600px] h-full bg-zinc-900 border border-zinc-800 rounded-3xl relative overflow-auto custom-scrollbar shadow-2xl">
+        <div ref={gridRef} className="w-full max-w-[1600px] h-full bg-zinc-900 border border-zinc-800 rounded-3xl relative overflow-auto custom-scrollbar shadow-2xl">
           <div className="min-w-[1000px] absolute inset-0 grid grid-cols-[60px_repeat(7,1fr)] grid-rows-[50px_repeat(11,minmax(80px,1fr))]">
             <div className="sticky top-0 left-0 z-30 bg-zinc-950 border-b border-r border-zinc-800"></div>
             {DAYS.map(d => (
