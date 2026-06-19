@@ -295,7 +295,7 @@ const CourseCard = memo(({ c, cart, validIds, solutions, selectMut, updateMut }:
   )
 })
 
-const VirtualMasonry = memo(({ data, ...props }: any) => {
+const VirtualMasonry = memo(({ data, resetKey, ...props }: { data: Course[], resetKey: string } & any) => {
   const containerRef = useRef<HTMLDivElement>(null)
   const [cols, setCols] = useState(1)
   const [limit, setLimit] = useState(30)
@@ -309,7 +309,7 @@ const VirtualMasonry = memo(({ data, ...props }: any) => {
     return () => ro.disconnect()
   }, [])
 
-  useEffect(() => { setLimit(30); containerRef.current?.scrollTo(0, 0) }, [data])
+  useEffect(() => { setLimit(30); containerRef.current?.scrollTo(0, 0) }, [resetKey])
 
   const colsData = useMemo(() => {
     const arr: any[][] = Array.from({ length: cols }, () => [])
@@ -535,7 +535,7 @@ export default function Catalog({ searchTerm, showFilters }: { searchTerm: strin
 
       <div className="flex-1 min-h-0 overflow-hidden flex gap-6">
         <div className="flex-1 min-w-0 h-full">
-          <VirtualMasonry data={filteredData} cart={cart} validIds={validIds} solutions={solutions} selectMut={selectMut} updateMut={updateMut} />
+          <VirtualMasonry data={filteredData} resetKey={semester} cart={cart} validIds={validIds} solutions={solutions} selectMut={selectMut} updateMut={updateMut} />
         </div>
         <div className="w-80 h-full shrink-0">
           <PlannerSidebar />
