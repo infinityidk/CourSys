@@ -12,6 +12,7 @@ import type { Class } from '../bindings/Class'
 import type { Group } from '../bindings/Group'
 import { pinyin } from 'pinyin-pro'
 import type { UserInfoResponse } from '../bindings/UserInfoResponse'
+import type { Dependency } from '../bindings/Dependency'
 
 const ERA_COLORS: Record<string, string> = {
   "1": "text-emerald-400 border-emerald-900 bg-emerald-950/30",
@@ -79,6 +80,11 @@ function isDenied(raw: string | null, user: UserInfoResponse): boolean {
 function isAllowed(raw: string | null, user: UserInfoResponse): boolean {
   const groups = parseConstraint(raw)
   return groups.length === 0 || groups.some(g => matchGroup(g, user))
+}
+
+function hasPrereqsMet(deps: Dependency[][] | null, passed: Set<string>): boolean {
+  if (!deps || deps.length === 0) return true
+  return deps.every(group => group.some(d => passed.has(d.code)))
 }
 
 // Portaled dropdown for add-to-group (avoids clipping by overflow:hidden parents)
@@ -212,9 +218,10 @@ function isGroupDead(cls: Class, g: Group, cart: any, solutions: any[], validIds
   return false
 }
 
-const CourseCard = memo(({ c, cart, validIds, solutions, selectMut, updateMut }: {
-  c: Course, cart: any, validIds: Set<string>, solutions: any[], selectMut: any, updateMut: any
+const CourseCard = memo(({ c, cart, validIds, solutions, selectMut, updateMut, passedCodes }: {
+  c: Course, cart: any, validIds: Set<string>, solutions: any[], selectMut: any, updateMut: any, passedCodes: Set<string>
 }) => {
+  const prereqMet = c.dependencies?.length ? hasPrereqsMet(c.dependencies, passedCodes) : undefined
 
   return (
     <div className="bg-zinc-950 border-2 border-zinc-900 rounded-3xl overflow-hidden shadow-2xl transition-all duration-300 w-full h-fit hover:border-zinc-700">
@@ -226,6 +233,9 @@ const CourseCard = memo(({ c, cart, validIds, solutions, selectMut, updateMut }:
               <span className={`px-2 py-0.5 text-[10px] font-black border rounded uppercase ${ERA_COLORS[c.era] || ERA_COLORS["O"]}`}>{formatEra(c.era)}</span>
               <span className="px-2 py-0.5 bg-zinc-800 text-zinc-400 text-[10px] font-bold rounded uppercase truncate max-w-[120px]">{c.category}</span>
               {c.nature && <span className="px-2 py-0.5 bg-blue-900/30 text-blue-400 text-[10px] font-bold rounded uppercase">{c.nature}</span>}
+              {passedCodes.has(c.code) && (
+                <span className="text-emerald-400 text-[10px] font-black ml-2 border border-emerald-900 bg-emerald-950/30 px-1 py-0.5 rounded">已修</span>
+              )}
             </div>
             <h2 className="text-xl font-black leading-tight tracking-tight text-white truncate" title={c.name}>{c.name}</h2>
           </div>
@@ -254,14 +264,15 @@ const CourseCard = memo(({ c, cart, validIds, solutions, selectMut, updateMut }:
         {/* Dependencies */}
         {c.dependencies && c.dependencies.length > 0 && (
           <div className="mt-2 pt-3 border-t border-dashed border-zinc-700/30 space-y-1.5">
-            <div className="text-[10px] font-black text-amber-500 uppercase tracking-wider flex items-center gap-1">
-              <div className="w-1.5 h-1.5 rounded-full bg-amber-500" />先修要求
+            <div className={`text-[10px] font-black uppercase tracking-wider flex items-center gap-1 ${prereqMet ? 'text-emerald-500' : 'text-red-400'}`}>
+              <div className={`w-1.5 h-1.5 rounded-full ${prereqMet ? 'bg-emerald-500' : 'bg-red-500'}`} />
+              先修要求
               <button onClick={() => updateMut.mutate(c.code)} disabled={updateMut.isPending} className="ml-auto text-zinc-500 hover:text-blue-400 text-[10px] font-bold disabled:opacity-30">↻ 刷新</button>
             </div>
             <div className="flex flex-col gap-1 pl-1">
               {c.dependencies.map((group, idx) => (
-                <div key={idx} className="text-[10px] text-amber-200/80 font-mono leading-tight flex items-start">
-                  <span className="mr-2 text-amber-600 font-bold select-none">{idx + 1}.</span>
+                <div key={idx} className={`text-[10px] font-mono leading-tight flex items-start ${prereqMet ? 'text-emerald-200/80' : 'text-red-200/80'}`}>
+                  <span className={`mr-2 font-bold select-none ${prereqMet ? 'text-emerald-600' : 'text-red-600'}`}>{idx + 1}.</span>
                   <span className="break-words">{group.map(item => `${item.code} ${item.name}`).join(' | ')}</span>
                 </div>
               ))}
@@ -364,7 +375,7 @@ const CourseCard = memo(({ c, cart, validIds, solutions, selectMut, updateMut }:
   )
 })
 
-const VirtualMasonry = memo(({ data, resetKey, ...props }: { data: Course[], resetKey: string } & any) => {
+const VirtualMasonry = memo(({ data, resetKey, cart, validIds, solutions, selectMut, updateMut, passedCodes }: { data: Course[], resetKey: string; cart: any, validIds: Set<string>, solutions: any[], selectMut: any, updateMut: any, passedCodes: Set<string> }) => {
   const containerRef = useRef<HTMLDivElement>(null)
   const [cols, setCols] = useState(1)
   const [limit, setLimit] = useState(30)
@@ -406,7 +417,7 @@ const VirtualMasonry = memo(({ data, resetKey, ...props }: { data: Course[], res
       <div className="flex gap-6 items-start">
         {colsData.map((items, i) => (
           <div key={i} className="flex-1 flex flex-col gap-6 min-w-0">
-            {items.map((c: Course) => <CourseCard key={c.code} c={c} {...props} />)}
+            {items.map((c: Course) => <CourseCard key={c.code} c={c} cart={cart} validIds={validIds} solutions={solutions} selectMut={selectMut} updateMut={updateMut} passedCodes={passedCodes} />)}
           </div>
         ))}
       </div>
@@ -425,6 +436,8 @@ export default function Catalog({ searchTerm, showFilters }: { searchTerm: strin
   const qc = useQueryClient()
 
   // Filters
+  const [hideCompleted, setHideCompleted] = useState(false)
+  const [hidePrereqNotMet, setHidePrereqNotMet] = useState(false)
   const [hideForbidden, setHideForbidden] = useState(false)
   const [hideConflict, setHideConflict] = useState(false)
   const [selDepts, setSelDepts] = useState<string[]>([])
@@ -474,6 +487,12 @@ export default function Catalog({ searchTerm, showFilters }: { searchTerm: strin
     onSuccess: () => qc.invalidateQueries({ queryKey: ['catalog', catSemester] })
   })
 
+  const gradesData = (() => {
+    try { const r = localStorage.getItem('coursys_grades'); return r ? JSON.parse(r) : null }
+    catch { return null }
+  })()
+  const passedCodes = new Set((gradesData as any[])?.filter((g: any) => g.grade !== 'F').map((g: any) => g.code) || [])
+
   const toggle = <T,>(set: Set<T>, val: T) => { const n = new Set(set); n.has(val) ? n.delete(val) : n.add(val); return Array.from(n) }
 
   const options = useMemo(() => {
@@ -497,6 +516,8 @@ export default function Catalog({ searchTerm, showFilters }: { searchTerm: strin
     const hasTimeFilter = days.size > 0 || periods.size > 0
 
     return data.reduce<Course[]>((res, c) => {
+      if (hideCompleted && passedCodes.has(c.code)) return res
+      if (hidePrereqNotMet && !hasPrereqsMet(c.dependencies, passedCodes)) return res
       if (hideForbidden && user?.level === '2' && c.era !== 'G') return res
       if (depts.size && !depts.has(c.department)) return res
       if (cats.size && !cats.has(c.category)) return res
@@ -547,7 +568,7 @@ export default function Catalog({ searchTerm, showFilters }: { searchTerm: strin
       if (finalClasses.length > 0) res.push({ ...c, classes: finalClasses })
       return res
     }, [])
-  }, [data, searchTerm, hideForbidden, hideConflict, selDepts, selCats, selNatures, selEras, selCredits, selDays, selPeriods, cart, solutions, validIds])
+  }, [data, searchTerm, hideForbidden, hideConflict, selDepts, selCats, selNatures, selEras, selCredits, selDays, selPeriods, cart, solutions, validIds, user, hideCompleted, hidePrereqNotMet])
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
@@ -559,6 +580,24 @@ export default function Catalog({ searchTerm, showFilters }: { searchTerm: strin
             {[{ l: "权限过滤", v: hideForbidden, s: setHideForbidden }, { l: "冲突过滤", v: hideConflict, s: setHideConflict }].map(f => (
               <button key={f.l} onClick={() => f.s(!f.v)} className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${f.v ? "bg-blue-500 border-blue-500 text-white" : "bg-zinc-900 border-zinc-800 text-zinc-500 hover:text-zinc-300"}`}>{f.l}</button>
             ))}
+          </div>
+
+          <div className="flex items-center gap-2">
+            {gradesData ? (
+              <span className="text-emerald-400 text-[10px] font-mono flex items-center gap-1">
+                <span className="w-2 h-2 rounded-full bg-emerald-400"></span>成绩已同步
+              </span>
+            ) : (
+              <span className="text-zinc-500 text-[10px] font-mono flex items-center gap-1">
+                <span className="w-2 h-2 rounded-full bg-zinc-600"></span>未获取成绩
+              </span>
+            )}
+            <button onClick={() => setHideCompleted(!hideCompleted)} className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${hideCompleted ? "bg-blue-500 border-blue-500 text-white" : "bg-zinc-900 border-zinc-800 text-zinc-500"}`}>
+              已修过滤
+            </button>
+            <button onClick={() => setHidePrereqNotMet(!hidePrereqNotMet)} className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${hidePrereqNotMet ? "bg-blue-500 border-blue-500 text-white" : "bg-zinc-900 border-zinc-800 text-zinc-500"}`}>
+              前置过滤
+            </button>
           </div>
 
           {/* Time */}
@@ -635,7 +674,7 @@ export default function Catalog({ searchTerm, showFilters }: { searchTerm: strin
 
       <div className="flex-1 min-h-0 overflow-hidden flex gap-6">
         <div className="flex-1 min-w-0 h-full">
-          <VirtualMasonry data={filteredData} resetKey={catSemester} cart={cart} validIds={validIds} solutions={solutions} selectMut={selectMut} updateMut={updateMut} />
+          <VirtualMasonry data={filteredData} resetKey={catSemester} cart={cart} validIds={validIds} solutions={solutions} selectMut={selectMut} updateMut={updateMut} passedCodes={passedCodes} />
         </div>
         <div className="w-80 h-full shrink-0">
           <PlannerSidebar />

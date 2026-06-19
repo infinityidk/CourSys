@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
+import { useEffect } from 'react'
 import { api } from '../api'
 import { useStore } from '../store'
 import { formatSemester } from '../utils/format'
@@ -19,6 +20,10 @@ export default function Grades() {
     queryFn: async () => (await api.get(`/grades?level=${user?.level || '1'}`)).data,
     enabled: !!user,
   })
+
+  useEffect(() => {
+    if (data && data.length > 0) localStorage.setItem('coursys_grades', JSON.stringify(data))
+  }, [data])
 
   if (isLoading) return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 animate-pulse">
