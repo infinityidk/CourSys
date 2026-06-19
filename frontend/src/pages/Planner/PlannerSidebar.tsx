@@ -115,7 +115,7 @@ function GroupCard({ groupKey }: { groupKey: string }) {
 }
 
 export default function PlannerSidebar() {
-  const { cart, solutions, modals, setModals } = useStore()
+  const { cart, solutions, modals, setModals, setCart } = useStore()
   const cartKeys = Object.keys(cart)
   const totalOptions = cartKeys.reduce((a, k) => a + cart[k].options.length, 0)
 
@@ -163,6 +163,52 @@ export default function PlannerSidebar() {
           className="w-full py-4 rounded-xl bg-white text-black text-xs font-black uppercase tracking-widest hover:bg-zinc-200 active:scale-95 disabled:opacity-20 disabled:scale-100 transition-all shadow-lg disabled:shadow-none"
         >
           查看排课结果
+        </button>
+      </div>
+
+      <div className="flex gap-2">
+        <button
+          onClick={() => {
+            const blob = new Blob([JSON.stringify(cart)], { type: 'application/json' })
+            const a = document.createElement('a')
+            a.href = URL.createObjectURL(blob)
+            a.download = `planner-${new Date().toISOString().slice(0, 10)}.json`
+            a.click()
+          }}
+          disabled={cartKeys.length === 0}
+          className="flex-1 py-3 rounded-xl bg-zinc-800 text-zinc-300 text-xs font-black uppercase tracking-widest hover:bg-zinc-700 transition-all disabled:opacity-30"
+        >
+          导出
+        </button>
+        <button
+          onClick={() => {
+            const input = document.createElement('input')
+            input.type = 'file'; input.accept = '.json'
+            input.onchange = (e) => {
+              const file = (e.target as HTMLInputElement).files?.[0]
+              if (!file) return
+              const reader = new FileReader()
+              reader.onload = () => {
+                try {
+                  const data = JSON.parse(reader.result as string)
+                  if (typeof data === 'object' && Object.values(data).every(
+                    (g: any) => g && typeof g.id === 'string' && Array.isArray(g.options)
+                  )) {
+                    setCart(data)
+                  } else {
+                    alert('导入失败：数据格式不正确')
+                  }
+                } catch {
+                  alert('导入失败：文件解析错误')
+                }
+              }
+              reader.readAsText(file)
+            }
+            input.click()
+          }}
+          className="flex-1 py-3 rounded-xl bg-zinc-800 text-zinc-300 text-xs font-black uppercase tracking-widest hover:bg-zinc-700 transition-all"
+        >
+          导入
         </button>
       </div>
 

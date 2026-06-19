@@ -33,6 +33,7 @@ interface AppState {
     updateCartGroup: (code: string, delta: Partial<CartGroup>) => void
     setValidIds: (ids: Set<string>) => void
     setSolutions: (sols: SolverSolution[]) => void
+    setCart: (cart: Record<string, CartGroup>) => void
 
     // Blocked time
     toggleBlocked: (day: number, period: number) => void
@@ -108,6 +109,8 @@ export const useStore = create<AppState>((set) => ({
         if (c[code]) c[code] = { ...c[code], ...delta }
         return { cart: c }
     }),
+
+    setCart: (cart) => set({ cart }),
 
     toggleBlocked: (day, period) => set(s => {
         const exists = s.blocked.some(b => b.day === day && b.period[0] === period)
