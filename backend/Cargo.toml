@@ -22,7 +22,7 @@ serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.150"
 serde_path_to_error = "0.1.20"
 tokio = { version = "1.52.3", features = ["macros", "rt-multi-thread", "net", "time", "sync", "fs"] }
-tower-http = { version = "0.6.11", features = ["compression-full", "timeout"] }
+tower-http = { version = "0.7.0", features = ["compression-full", "timeout"] }
 tracing = "0.1.44"
 tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
 ts-rs = "12.0.1"
