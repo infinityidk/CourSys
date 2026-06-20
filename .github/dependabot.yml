@@ -8,9 +8,17 @@ updates:
   - package-ecosystem: "npm" # See documentation for possible values
     directory: "/frontend" # Location of package manifests
     schedule:
-      interval: "weekly"
+      interval: "monthly"
+    groups:
+      npm-deps:
+        patterns:
+          - "*"
 
   - package-ecosystem: "cargo"
     directory: "/backend"
     schedule:
-      interval: "weekly"
+      interval: "monthly"
+    groups:
+      cargo-deps:
+        patterns:
+          - "*"
