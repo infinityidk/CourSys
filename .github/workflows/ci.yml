@@ -1,0 +1,24 @@
+on:
+  push:
+    tags-ignore: ['v*']
+  pull_request:
+
+jobs:
+  type-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo test
+      - run: git diff --exit-code
+
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+        with: { version: 11 }
+      - uses: actions/setup-node@v6
+        with: { node-version: 26, cache: 'pnpm', cache-dependency-path: frontend/pnpm-lock.yaml }
+      - run: cd frontend && pnpm install && pnpm build
