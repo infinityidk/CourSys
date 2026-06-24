@@ -40,7 +40,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
-        with: { targets: ${{ matrix.target }} }
+        with: { targets: '${{ matrix.target }}' }
       - uses: actions/download-artifact@v8
         with: { name: frontend-dist, path: frontend/dist }
       - uses: Swatinem/rust-cache@v2
