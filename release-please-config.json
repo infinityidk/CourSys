@@ -1,0 +1,13 @@
+{
+  "packages": {
+    ".": {
+      "release-type": "simple",
+      "skip-github-release": true,
+      "extra-files": [
+        "backend/Cargo.toml",
+        "frontend/package.json"
+      ],
+      "initial-version": "1.0.0"
+    }
+  }
+}
