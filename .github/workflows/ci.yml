@@ -1,0 +1,38 @@
+on:
+  push:
+    branches: ['main']
+    tags-ignore: ['v*']
+  pull_request:
+
+jobs:
+  type-check:
+    needs: frontend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - uses: actions/download-artifact@v8
+        with:
+          name: frontend-dist
+          path: frontend/dist
+      - run: cargo test
+      - run: git diff --exit-code
+
+  frontend:
+    if: |
+      (github.event_name == 'pull_request' && github.event.pull_request.head.ref != 'release-please--branches--main') || (github.event_name == 'push' && !contains(github.event.head_commit.message, 'release-please') && !contains(github.event.head_commit.message, 'chore(main): release'))
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+        with: { version: 11 }
+      - uses: actions/setup-node@v6
+        with: { node-version: 26, cache: 'pnpm', cache-dependency-path: frontend/pnpm-lock.yaml }
+      - run: cd frontend && pnpm install && pnpm build
+      - uses: actions/upload-artifact@v7
+        with:
+          name: frontend-dist
+          path: frontend/dist
+          retention-days: 1
+          if-no-files-found: error
