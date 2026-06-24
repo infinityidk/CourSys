@@ -1,3 +1,5 @@
+name: Release
+
 on:
   push:
     tags: ['v*']
@@ -5,6 +7,9 @@ on:
 jobs:
   frontend:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: write
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6
@@ -21,6 +26,9 @@ jobs:
 
   build:
     needs: frontend
+    permissions:
+      contents: read
+      actions: write
     strategy:
       matrix:
         include:
@@ -80,6 +88,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      actions: read
     steps:
       - uses: actions/download-artifact@v8
         with: { path: artifacts }

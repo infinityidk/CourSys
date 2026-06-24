@@ -1,3 +1,5 @@
+name: CI
+
 on:
   push:
     branches: ['main']
@@ -8,6 +10,9 @@ jobs:
   type-check:
     needs: frontend
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
     steps:
       - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
@@ -23,6 +28,9 @@ jobs:
     if: |
       (github.event_name == 'pull_request' && github.event.pull_request.head.ref != 'release-please--branches--main') || (github.event_name == 'push' && !contains(github.event.head_commit.message, 'release-please') && !contains(github.event.head_commit.message, 'chore(main): release'))
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: write
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6
