@@ -67,7 +67,7 @@ export default function Grades() {
               </div>
               {(d.ranking || d.students) && (
                 <div className="flex gap-3 text-[9px] font-mono text-zinc-500 pt-1">
-                  {d.ranking && <span>排名: <span className="text-zinc-300">{d.ranking}</span></span>}
+                  {d.ranking && <span>班级排名: <span className="text-zinc-300">{d.ranking}</span></span>}
                   {d.students && <span>修读人数: <span className="text-zinc-300">{d.students}</span></span>}
                 </div>
               )}
