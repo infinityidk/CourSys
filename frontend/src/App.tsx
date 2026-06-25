@@ -7,14 +7,13 @@ import Home from './pages/Home'
 import Grades from './pages/Grades'
 import Timetable from './pages/Timetable'
 import Catalog from './pages/Catalog'
-import { formatSemester } from './utils/format'
 
 const qc = new QueryClient({ defaultOptions: { queries: { retry: false, refetchOnWindowFocus: false } } })
 
 const TAB_NAMES: Record<string, string> = { home: '首页', timetable: '我的课表', grades: '成绩单', schedule: '全校开课 / 排课' }
 
 function AppShell() {
-  const { tab, setTab, semester, setSemester, setUser } = useStore()
+  const { tab, setTab, setSemester, setUser } = useStore()
   const [appState, setAppState] = useState<'gate' | 'login' | 'loading' | 'app'>('gate')
 
   // Search & Filter state lifted for Schedule tab
@@ -47,14 +46,6 @@ function AppShell() {
       .catch(() => setAppState('login'))
   }
 
-  const getSubtitle = () => {
-    if (tab === 'home') return '欢迎使用 COURSYS'
-    if (tab === 'grades') return '已修课程成绩'
-    if (tab === 'schedule') return semester ? `${formatSemester(semester)} 智能排课终端` : ''
-    if (tab === 'timetable') return semester ? formatSemester(semester) : ''
-    return ''
-  }
-
   // Gate / Loading splash
   if (appState === 'gate' || appState === 'loading') return (
     <div className="min-h-screen bg-black flex items-center justify-center">
@@ -82,9 +73,8 @@ function AppShell() {
     <div className="h-screen bg-black text-zinc-300 p-6 font-sans selection:bg-blue-500/30 flex flex-col overflow-hidden">
       <header className="flex-none flex flex-col xl:flex-row justify-between items-end xl:items-center mb-6 gap-6">
         {/* Left: Logo */}
-        <div className="space-y-1 shrink-0">
-          <h1 className="text-6xl font-black text-white tracking-tighter italic uppercase leading-none">CourSys</h1>
-          <p className="text-blue-500 font-mono text-xs font-bold tracking-[0.2em] uppercase pl-1">{getSubtitle()}</p>
+        <div className="shrink-0">
+          <h1 className="text-5xl font-black text-white tracking-tighter italic uppercase leading-none">CourSys</h1>
         </div>
 
         {/* Middle: Search & Filter (Schedule tab only) */}
@@ -93,7 +83,7 @@ function AppShell() {
             <div className="relative flex-1">
               <input
                 type="text"
-                className="w-full pl-12 pr-4 py-3 bg-zinc-900 border border-zinc-800 rounded-2xl text-white placeholder-zinc-600 hover:border-zinc-700 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/50 transition-all font-bold"
+                className="w-full pl-12 pr-4 py-3 bg-zinc-900 border border-zinc-800 rounded-2xl text-white placeholder-zinc-600 hover:border-zinc-700 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/50 transition-all font-bold text-xs"
                 placeholder="搜索课程代码、名称或教师 (Ctrl+F)"
                 value={globalSearch}
                 onChange={(e) => setGlobalSearch(e.target.value)}
@@ -111,13 +101,23 @@ function AppShell() {
           </div>
         )}
 
-        {/* Right: Tabs */}
-        <div className="flex bg-zinc-900 p-1.5 rounded-2xl border border-zinc-800 shrink-0">
-          {(['home', 'timetable', 'grades', 'schedule'] as const).map(t => (
-            <button key={t} onClick={() => setTab(t)} className={`px-6 py-3 rounded-xl text-xs font-black transition-all ${tab === t ? 'bg-zinc-950 text-white shadow-lg ring-1 ring-zinc-800' : 'text-zinc-500 hover:text-zinc-300'}`}>
-              {TAB_NAMES[t]}
-            </button>
-          ))}
+        {/* Right: Semester Selector & Tabs */}
+        <div className="flex items-center gap-3 shrink-0">
+          <div id="semester-selector" className="empty:hidden" />
+          <div className="flex gap-2 shrink-0">
+            {(['home', 'timetable', 'grades', 'schedule'] as const).map(t => (
+              <button
+                key={t}
+                onClick={() => setTab(t)}
+                className={`px-6 py-3 rounded-2xl font-black text-xs border transition-all ${tab === t
+                  ? "bg-white text-black border-white shadow-lg"
+                  : "bg-zinc-900 text-zinc-500 border-zinc-800 hover:text-zinc-300"
+                  }`}
+              >
+                {TAB_NAMES[t]}
+              </button>
+            ))}
+          </div>
         </div>
       </header>
 

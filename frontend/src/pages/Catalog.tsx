@@ -560,116 +560,118 @@ export default function Catalog({ searchTerm, showFilters }: { searchTerm: strin
     }, [])
   }, [data, searchTerm, hideForbidden, hideConflict, selDepts, selCats, selNatures, selEras, selCredits, selDays, selPeriods, cart, solutions, validIds, user, hideCompleted, hidePrereqNotMet])
 
+  const semesterPortal = createPortal(
+    <div className="relative">
+      <select
+        value={catSemester}
+        onChange={(e) => setCatSemester(e.target.value)}
+        disabled={semesterOptions.length === 0}
+        className="appearance-none bg-zinc-900 border border-zinc-800 rounded-2xl pl-6 pr-10 py-3 text-xs font-black text-white hover:text-zinc-300 outline-none focus:border-blue-500 disabled:opacity-50 transition-all cursor-pointer"
+      >
+        {semesterOptions.length === 0 ? (
+          <option value="" className="bg-zinc-950">加载中...</option>
+        ) : (
+          semesterOptions.map(opt => (
+            <option key={opt} value={opt} className="bg-zinc-950">{formatSemester(opt)}</option>
+          ))
+        )}
+      </select>
+      <div className="pointer-events-none absolute inset-y-0 right-4 flex items-center">
+        <svg className="w-4 h-4 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+        </svg>
+      </div>
+    </div>,
+    document.getElementById('semester-selector')!
+  );
+
   return (
-    <div className="flex flex-col h-full overflow-hidden">
-      {/* Filter Panel */}
-      {showFilters && (
-        <div className="bg-zinc-950 border-b border-zinc-800 p-4 shrink-0 shadow-xl overflow-y-auto max-h-[25vh] custom-scrollbar flex flex-wrap gap-6 items-start">
-          {/* Switches */}
-          <div className="flex flex-wrap gap-2">
-            {[{ l: "权限过滤", v: hideForbidden, s: setHideForbidden }, { l: "冲突过滤", v: hideConflict, s: setHideConflict }].map(f => (
-              <button key={f.l} onClick={() => f.s(!f.v)} className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${f.v ? "bg-blue-500 border-blue-500 text-white" : "bg-zinc-900 border-zinc-800 text-zinc-500 hover:text-zinc-300"}`}>{f.l}</button>
-            ))}
-          </div>
-
-          <div className="flex items-center gap-2">
-            {gradesData ? (
-              <span className="text-emerald-400 text-[10px] font-mono flex items-center gap-1">
-                <span className="w-2 h-2 rounded-full bg-emerald-400"></span>成绩已同步
-              </span>
-            ) : (
-              <span className="text-zinc-500 text-[10px] font-mono flex items-center gap-1">
-                <span className="w-2 h-2 rounded-full bg-zinc-600"></span>未获取成绩
-              </span>
-            )}
-            <button onClick={() => setHideCompleted(!hideCompleted)} className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${hideCompleted ? "bg-blue-500 border-blue-500 text-white" : "bg-zinc-900 border-zinc-800 text-zinc-500"}`}>
-              已修过滤
-            </button>
-            <button onClick={() => setHidePrereqNotMet(!hidePrereqNotMet)} className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${hidePrereqNotMet ? "bg-blue-500 border-blue-500 text-white" : "bg-zinc-900 border-zinc-800 text-zinc-500"}`}>
-              前置过滤
-            </button>
-          </div>
-
-          {/* Time */}
-          <div className="flex flex-col gap-2 p-3 rounded-xl bg-zinc-900/50 border border-zinc-800">
-            <div className="text-[10px] font-black text-zinc-500 uppercase">时间</div>
-            <div className="flex gap-1">
-              {["一", "二", "三", "四", "五", "六", "日"].map((d, i) => (
-                <button key={d} onClick={() => setSelDays(toggle(new Set(selDays), i + 1))} className={`px-2 py-1 rounded text-[10px] font-bold border ${selDays.includes(i + 1) ? "bg-white text-black" : "bg-zinc-900 text-zinc-500 border-zinc-800"}`}>{d}</button>
-              ))}
-            </div>
-            <div className="flex gap-1">
-              {Object.keys(PERIOD_MAP).map(p => (
-                <button key={p} onClick={() => setSelPeriods(toggle(new Set(selPeriods), p))} className={`px-2 py-1 rounded text-[10px] font-bold border ${selPeriods.includes(p) ? "bg-white text-black" : "bg-zinc-900 text-zinc-500 border-zinc-800"}`}>{p}</button>
-              ))}
-            </div>
-          </div>
-
-          {/* Attributes */}
-          <div className="flex flex-wrap gap-4">
-            {[
-              { k: "年级", opt: options.eras, v: selEras, s: setSelEras, fmt: formatEra },
-              { k: "性质", opt: options.natures, v: selNatures, s: setSelNatures },
-              { k: "类别", opt: options.cats, v: selCats, s: setSelCats },
-              { k: "学分", opt: options.credits, v: selCredits, s: setSelCredits }
-            ].map(g => (
-              <div key={g.k} className="flex flex-col gap-1 p-2 rounded-lg border border-transparent hover:border-zinc-800 transition-colors">
-                <div className="text-[10px] font-black text-zinc-600 uppercase">{g.k}</div>
-                <div className="flex flex-wrap gap-1">
-                  {g.opt.map(o => (
-                    <button key={o} onClick={() => g.s(toggle(new Set(g.v), o))} className={`px-2 py-1 rounded text-[10px] font-bold border ${g.v.includes(o) ? "bg-zinc-200 text-black border-zinc-200" : "bg-zinc-900 text-zinc-500 border-zinc-800"}`}>
-                      {g.fmt ? g.fmt(o) : o}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Depts */}
-          <div className="w-full pt-2 border-t border-zinc-900">
-            <div className="text-[10px] font-black text-zinc-600 uppercase mb-2">院系</div>
+    <>{semesterPortal}
+      <div className="flex flex-col h-full overflow-hidden">
+        {/* Filter Panel */}
+        {showFilters && (
+          <div className="bg-zinc-950 border-b border-zinc-800 p-4 shrink-0 shadow-xl overflow-y-auto max-h-[25vh] custom-scrollbar flex flex-wrap gap-6 items-start">
+            {/* Switches */}
             <div className="flex flex-wrap gap-2">
-              {options.depts.map(d => (
-                <button key={d} onClick={() => setSelDepts(toggle(new Set(selDepts), d))} className={`px-3 py-1.5 rounded-lg text-[10px] font-bold border text-left ${selDepts.includes(d) ? "bg-blue-900/30 text-blue-400 border-blue-500/50" : "bg-zinc-900 text-zinc-500 border-zinc-800"}`}>{d}</button>
+              {[{ l: "权限过滤", v: hideForbidden, s: setHideForbidden }, { l: "冲突过滤", v: hideConflict, s: setHideConflict }].map(f => (
+                <button key={f.l} onClick={() => f.s(!f.v)} className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${f.v ? "bg-blue-500 border-blue-500 text-white" : "bg-zinc-900 border-zinc-800 text-zinc-500 hover:text-zinc-300"}`}>{f.l}</button>
               ))}
             </div>
+
+            <div className="flex items-center gap-2">
+              {gradesData ? (
+                <span className="text-emerald-400 text-[10px] font-mono flex items-center gap-1">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400"></span>成绩已同步
+                </span>
+              ) : (
+                <span className="text-zinc-500 text-[10px] font-mono flex items-center gap-1">
+                  <span className="w-2 h-2 rounded-full bg-zinc-600"></span>未获取成绩
+                </span>
+              )}
+              <button onClick={() => setHideCompleted(!hideCompleted)} className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${hideCompleted ? "bg-blue-500 border-blue-500 text-white" : "bg-zinc-900 border-zinc-800 text-zinc-500"}`}>
+                已修过滤
+              </button>
+              <button onClick={() => setHidePrereqNotMet(!hidePrereqNotMet)} className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${hidePrereqNotMet ? "bg-blue-500 border-blue-500 text-white" : "bg-zinc-900 border-zinc-800 text-zinc-500"}`}>
+                前置过滤
+              </button>
+            </div>
+
+            {/* Time */}
+            <div className="flex flex-col gap-2 p-3 rounded-xl bg-zinc-900/50 border border-zinc-800">
+              <div className="text-[10px] font-black text-zinc-500 uppercase">时间</div>
+              <div className="flex gap-1">
+                {["一", "二", "三", "四", "五", "六", "日"].map((d, i) => (
+                  <button key={d} onClick={() => setSelDays(toggle(new Set(selDays), i + 1))} className={`px-2 py-1 rounded text-[10px] font-bold border ${selDays.includes(i + 1) ? "bg-white text-black" : "bg-zinc-900 text-zinc-500 border-zinc-800"}`}>{d}</button>
+                ))}
+              </div>
+              <div className="flex gap-1">
+                {Object.keys(PERIOD_MAP).map(p => (
+                  <button key={p} onClick={() => setSelPeriods(toggle(new Set(selPeriods), p))} className={`px-2 py-1 rounded text-[10px] font-bold border ${selPeriods.includes(p) ? "bg-white text-black" : "bg-zinc-900 text-zinc-500 border-zinc-800"}`}>{p}</button>
+                ))}
+              </div>
+            </div>
+
+            {/* Attributes */}
+            <div className="flex flex-wrap gap-4">
+              {[
+                { k: "年级", opt: options.eras, v: selEras, s: setSelEras, fmt: formatEra },
+                { k: "性质", opt: options.natures, v: selNatures, s: setSelNatures },
+                { k: "类别", opt: options.cats, v: selCats, s: setSelCats },
+                { k: "学分", opt: options.credits, v: selCredits, s: setSelCredits }
+              ].map(g => (
+                <div key={g.k} className="flex flex-col gap-1 p-2 rounded-lg border border-transparent hover:border-zinc-800 transition-colors">
+                  <div className="text-[10px] font-black text-zinc-600 uppercase">{g.k}</div>
+                  <div className="flex flex-wrap gap-1">
+                    {g.opt.map(o => (
+                      <button key={o} onClick={() => g.s(toggle(new Set(g.v), o))} className={`px-2 py-1 rounded text-[10px] font-bold border ${g.v.includes(o) ? "bg-zinc-200 text-black border-zinc-200" : "bg-zinc-900 text-zinc-500 border-zinc-800"}`}>
+                        {g.fmt ? g.fmt(o) : o}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Depts */}
+            <div className="w-full pt-2 border-t border-zinc-900">
+              <div className="text-[10px] font-black text-zinc-600 uppercase mb-2">院系</div>
+              <div className="flex flex-wrap gap-2">
+                {options.depts.map(d => (
+                  <button key={d} onClick={() => setSelDepts(toggle(new Set(selDepts), d))} className={`px-3 py-1.5 rounded-lg text-[10px] font-bold border text-left ${selDepts.includes(d) ? "bg-blue-900/30 text-blue-400 border-blue-500/50" : "bg-zinc-900 text-zinc-500 border-zinc-800"}`}>{d}</button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div className="flex-1 min-h-0 overflow-hidden flex gap-6">
+          <div className="flex-1 min-w-0 h-full">
+            <VirtualMasonry data={filteredData} resetKey={catSemester} cart={cart} validIds={validIds} solutions={solutions} selectMut={selectMut} updateMut={updateMut} passedCodes={passedCodes} />
+          </div>
+          <div className="w-80 h-full shrink-0">
+            <PlannerSidebar />
           </div>
         </div>
-      )}
-
-      <div className="flex items-center gap-2 px-1 pb-2">
-        <div className="relative">
-          <select
-            value={catSemester}
-            onChange={(e) => setCatSemester(e.target.value)}
-            disabled={semesterOptions.length === 0}
-            className="appearance-none bg-zinc-900 border border-zinc-800 rounded-xl pl-4 pr-8 py-2 text-sm font-bold text-white outline-none focus:border-blue-500 disabled:opacity-50 cursor-pointer"
-          >
-            {semesterOptions.length === 0 ? (
-              <option value="">加载中...</option>
-            ) : (
-              semesterOptions.map(opt => (
-                <option key={opt} value={opt}>{formatSemester(opt)}</option>
-              ))
-            )}
-          </select>
-          <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
-            <svg className="w-4 h-4 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-            </svg>
-          </div>
-        </div>
-      </div>
-
-      <div className="flex-1 min-h-0 overflow-hidden flex gap-6">
-        <div className="flex-1 min-w-0 h-full">
-          <VirtualMasonry data={filteredData} resetKey={catSemester} cart={cart} validIds={validIds} solutions={solutions} selectMut={selectMut} updateMut={updateMut} passedCodes={passedCodes} />
-        </div>
-        <div className="w-80 h-full shrink-0">
-          <PlannerSidebar />
-        </div>
-      </div>
-    </div>
+      </div></>
   )
 }
