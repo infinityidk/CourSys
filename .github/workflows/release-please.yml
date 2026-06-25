@@ -2,8 +2,7 @@ name: Release Please
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
 
 permissions:
   contents: write
@@ -16,5 +15,26 @@ jobs:
     environment: Release
     steps:
       - uses: googleapis/release-please-action@v5
+        id: release
         with:
           token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
+
+      - name: Checkout PR branch
+        if: steps.release.outputs.pr
+        uses: actions/checkout@v7
+        with:
+          token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
+          ref: ${{ fromJson(steps.release.outputs.pr).headBranchName }}
+
+      - name: Update Cargo.lock
+        if: steps.release.outputs.pr
+        run: cargo update --workspace
+
+      - name: Commit and push Cargo.lock
+        if: steps.release.outputs.pr
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Cargo.lock
+          VERSION=$(cargo metadata --format-version=1 --no-deps | jq -r '.packages[] | select(.name == "backend") | .version')
+          git diff --quiet && git diff --staged --quiet || (git commit -m "chore: update Cargo.lock for v$VERSION" && git push)
