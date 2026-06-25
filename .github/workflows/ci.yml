@@ -15,6 +15,10 @@ jobs:
       actions: read
     steps:
       - uses: actions/checkout@v7
+      - name: Install Linux dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
       - uses: actions/download-artifact@v8
