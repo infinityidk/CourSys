@@ -8,6 +8,15 @@ use rust_embed::RustEmbed;
 use std::time::Instant;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
+use tao::event_loop::{ControlFlow, EventLoop};
+use tao::window::WindowBuilder;
+use wry::WebViewBuilder;
+
+#[cfg(target_os = "linux")]
+use tao::platform::unix::WindowExtUnix;
+#[cfg(target_os = "linux")]
+use wry::WebViewBuilderExtUnix;
+
 #[derive(RustEmbed)]
 #[folder = "../frontend/dist"]
 struct Assets;
@@ -63,6 +72,34 @@ async fn main() {
     std_listener.set_nonblocking(true).unwrap();
     let listener = tokio::net::TcpListener::from_std(std_listener).unwrap();
     let port = listener.local_addr().unwrap().port();
-    let _ = webbrowser::open(&format!("http://127.0.0.1:{port}"));
-    axum::serve(listener, app).await.unwrap();
+
+    tokio::spawn(async move {
+        axum::serve(listener, app).await.unwrap();
+    });
+
+    let event_loop = EventLoop::new();
+    let window = WindowBuilder::new()
+        .with_title("CourSys")
+        .with_inner_size(tao::dpi::LogicalSize::new(1200.0, 800.0))
+        .build(&event_loop)
+        .unwrap();
+
+    let builder = WebViewBuilder::new().with_url(format!("http://127.0.0.1:{port}"));
+
+    #[cfg(not(target_os = "linux"))]
+    let _webview = builder.build(&window).unwrap();
+
+    #[cfg(target_os = "linux")]
+    let _webview = builder.build_gtk(window.default_vbox().unwrap()).unwrap();
+
+    event_loop.run(move |event, _, control_flow| {
+        *control_flow = ControlFlow::Wait;
+        if let tao::event::Event::WindowEvent {
+            event: tao::event::WindowEvent::CloseRequested,
+            ..
+        } = event
+        {
+            *control_flow = ControlFlow::Exit;
+        }
+    });
 }
