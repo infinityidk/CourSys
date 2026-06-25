@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useEffect } from 'react'
 import { api } from '../api'
 import { useStore } from '../store'
-import { formatSemester } from '../utils/format'
+import { formatSemester, NATURE_COLORS } from '../utils/format'
 import type { GradeResponse } from '../bindings/GradeResponse'
 
 const COLORS: Record<string, string> = {
@@ -50,7 +50,7 @@ export default function Grades() {
               <h3 className="text-lg font-black text-white leading-snug">{d.name}</h3>
               <div className="flex flex-wrap gap-2 items-center text-[9px]">
                 <span className="px-2 py-0.5 bg-zinc-800 text-zinc-400 rounded uppercase font-bold">{d.category}</span>
-                {d.nature && <span className="px-2 py-0.5 bg-blue-900/30 text-blue-400 rounded font-bold">{d.nature}</span>}
+                {d.nature && <span className={`px-2 py-0.5 ${NATURE_COLORS[d.nature] || "bg-blue-900/30 text-blue-400"} rounded font-bold`}>{d.nature}</span>}
                 <span className="px-2 py-0.5 bg-zinc-900 text-zinc-500 rounded font-mono truncate max-w-[120px]">{d.department}</span>
               </div>
             </div>

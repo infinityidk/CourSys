@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../api'
 import { useStore } from '../store'
+import { NATURE_COLORS } from '../utils/format'
 import { compareSemesters, formatSemester, formatWeeks, generateSemesterRange } from '../utils/format'
 import type { ScheduleResponse } from '../bindings/ScheduleResponse'
 
@@ -160,8 +161,7 @@ export default function Timetable() {
             >
               <div className="space-y-4">
                 <div className="flex flex-wrap gap-2 items-center">
-                  {course.nature && <span className="px-2 py-1 text-[10px] font-black border rounded uppercase tracking-wider text-blue-400 border-blue-900 bg-blue-950/30">
-                    {course.nature}
+                  {course.nature && <span className={`px-2 py-1 text-[10px] font-black border rounded uppercase tracking-wider ${NATURE_COLORS[course.nature] || "text-blue-400 border-blue-900 bg-blue-950/30"}`}>{course.nature}
                   </span>}
                   <span className="px-2 py-1 bg-zinc-800 text-zinc-400 text-[10px] font-bold rounded uppercase tracking-wider">
                     {course.category}

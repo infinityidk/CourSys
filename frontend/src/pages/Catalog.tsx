@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../api'
 import { useStore, type CartOption } from '../store'
-import { formatSlot, formatEra, getPreviousSemesters, formatSemester } from '../utils/format'
+import { formatSlot, formatEra, getPreviousSemesters, formatSemester, ERA_COLORS, NATURE_COLORS } from '../utils/format'
 import { createMask, hasConflict } from '../utils/bitwise'
 import SolverWorker from '../utils/worker?worker'
 import PlannerSidebar from './Planner/PlannerSidebar'
@@ -13,16 +13,6 @@ import type { Group } from '../bindings/Group'
 import { pinyin } from 'pinyin-pro'
 import type { UserInfoResponse } from '../bindings/UserInfoResponse'
 import type { Dependency } from '../bindings/Dependency'
-
-const ERA_COLORS: Record<string, string> = {
-  "1": "text-emerald-400 border-emerald-900 bg-emerald-950/30",
-  "2": "text-cyan-400 border-cyan-900 bg-cyan-950/30",
-  "3": "text-violet-400 border-violet-900 bg-violet-950/30",
-  "4": "text-rose-400 border-rose-900 bg-rose-950/30",
-  "5": "text-white-400 border-white-900 bg-white-950/30",
-  "G": "text-amber-400 border-amber-900 bg-amber-950/30",
-  "O": "text-zinc-400 border-zinc-700 bg-zinc-900"
-}
 
 const PERIOD_MAP: Record<string, number[]> = {
   "1-2": [1, 2], "3-4": [3, 4], "5-6": [5, 6], "7-8": [7, 8], "9-10": [9, 10], "11": [11]
@@ -232,7 +222,7 @@ const CourseCard = memo(({ c, cart, validIds, solutions, selectMut, updateMut, p
             <div className="flex flex-wrap gap-2 items-center">
               <span className={`px-2 py-0.5 text-[10px] font-black border rounded uppercase ${ERA_COLORS[c.era] || ERA_COLORS["O"]}`}>{formatEra(c.era)}</span>
               <span className="px-2 py-0.5 bg-zinc-800 text-zinc-400 text-[10px] font-bold rounded uppercase truncate max-w-[120px]">{c.category}</span>
-              {c.nature && <span className="px-2 py-0.5 bg-blue-900/30 text-blue-400 text-[10px] font-bold rounded uppercase">{c.nature}</span>}
+              {c.nature && <span className={`px-2 py-0.5 ${NATURE_COLORS[c.nature] || "bg-blue-900/30 text-blue-400"} text-[10px] font-bold rounded uppercase`}>{c.nature}</span>}
               {passedCodes.has(c.code) && (
                 <span className="text-emerald-400 text-[10px] font-black ml-2 border border-emerald-900 bg-emerald-950/30 px-1 py-0.5 rounded">已修</span>
               )}

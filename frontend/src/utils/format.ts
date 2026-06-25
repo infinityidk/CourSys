@@ -1,5 +1,20 @@
 import type { Slot } from '../bindings/Slot'
 
+const UG = "text-blue-400 border-blue-900 bg-blue-950/30";
+
+export const ERA_COLORS: Record<string, string> = {
+    "1": UG, "2": UG, "3": UG, "4": UG, "5": UG,
+    "G": "text-amber-400 border-amber-900 bg-amber-950/30",
+    "O": "text-zinc-400 border-zinc-700 bg-zinc-900"
+};
+
+export const NATURE_COLORS: Record<string, string> = {
+    "必修": "text-rose-400 border-rose-900 bg-rose-950/30",
+    "选修": "text-emerald-400 border-emerald-900 bg-emerald-950/30",
+    "限选": "text-amber-400 border-amber-900 bg-amber-950/30",
+    "任选": "text-cyan-400 border-cyan-900 bg-cyan-950/30"
+};
+
 const ERA_MAP: Record<string, string> = {
     "1": "大一", "2": "大二", "3": "大三", "4": "大四", "5": "大五",
     "G": "研究生", "O": "其他"
