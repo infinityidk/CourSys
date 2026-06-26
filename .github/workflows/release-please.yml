@@ -28,7 +28,12 @@ jobs:
 
       - name: Update Cargo.lock
         if: steps.release.outputs.pr
-        run: cargo update --workspace
+        uses: nick-fields/retry@4
+        with:
+          timeout_minutes: 5
+          max_attempts: 3
+          retry_on: error
+          command: cargo update --workspace
 
       - name: Commit and push Cargo.lock
         if: steps.release.outputs.pr
