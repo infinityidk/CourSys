@@ -3,6 +3,7 @@ import { toPng } from 'html-to-image'
 import { formatSemester } from '../../utils/format'
 import { useStore } from '../../store'
 import type { Slot } from '../../bindings/Slot'
+import { api } from '../../api'
 
 
 const PERIOD_ROWS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
@@ -53,10 +54,12 @@ export default function SolutionModal({ onClose }: { onClose: () => void }) {
         pixelRatio: 2,
         filter: (node) => !node.classList?.contains('export-ignore'),
       })
-      const a = document.createElement('a')
-      a.href = dataUrl
-      a.download = `方案${idx + 1}.png`
-      a.click()
+      await api.post('/export/image', {
+        data: dataUrl,
+        filename: `方案${idx + 1}.png`
+      })
+    } catch (err: any) {
+      alert('导出图片失败: ' + (err.response?.data || err.message))
     } finally {
       grid.style.overflow = prev
     }

@@ -1,3 +1,4 @@
+use crate::api::handlers::export::{export_image_handler, export_planner_handler};
 use crate::api::handlers::modify::modify_handler;
 use crate::api::handlers::schedule::schedule_handler;
 use crate::api::handlers::select::select_handler;
@@ -33,11 +34,17 @@ pub fn create_router(state: AppState) -> Router {
         .route("/api/select", post(select_handler))
         .route("/api/quit", post(quit_handler))
         .route("/api/mod", post(modify_handler))
+        .layer(DefaultBodyLimit::max(1024 * 10))
+        .merge(
+            Router::new()
+                .route("/api/export/planner", post(export_planner_handler))
+                .route("/api/export/image", post(export_image_handler))
+                .layer(DefaultBodyLimit::max(1024 * 1024 * 10)),
+        )
         .layer(TimeoutLayer::with_status_code(
             StatusCode::GATEWAY_TIMEOUT,
             Duration::from_mins(10),
         ))
-        .layer(DefaultBodyLimit::max(1024 * 10))
         .layer(CompressionLayer::new().compress_when(SizeAbove::new(1024)))
         .with_state(state)
 }

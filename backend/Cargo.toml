@@ -12,6 +12,7 @@ anyhow = "1.0.102"
 async-recursion = "1.1.1"
 axum = "0.8.9"
 axum-extra = { version = "0.12.6", features = ["cookie"] }
+base64 = "0.22.1"
 brotli = "8.0.4"
 bytes = "1.12.0"
 chrono = "0.4.45"
@@ -21,6 +22,7 @@ itertools = "0.15.0"
 mime_guess = "2.0.5"
 regex = "1.12.4"
 reqwest = { version = "0.13.4", features = ["json", "cookies", "form", "stream"] }
+rfd = "0.17.2"
 rust-embed = "8.11.0"
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.150"

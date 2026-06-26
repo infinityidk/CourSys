@@ -4,6 +4,7 @@ import { useStore } from '../../store'
 import { formatSlot } from '../../utils/format'
 import BlockedModal from './BlockedModal'
 import SolutionModal from './SolutionModal'
+import { api } from '../../api'
 
 function GroupCard({ groupKey }: { groupKey: string }) {
   const { cart, validIds, solutions, updateCartGroup, removeCartGroup, removeCartOption } = useStore()
@@ -168,12 +169,12 @@ export default function PlannerSidebar() {
 
       <div className="flex gap-2">
         <button
-          onClick={() => {
-            const blob = new Blob([JSON.stringify(cart)], { type: 'application/json' })
-            const a = document.createElement('a')
-            a.href = URL.createObjectURL(blob)
-            a.download = `planner-${new Date().toISOString().slice(0, 10)}.json`
-            a.click()
+          onClick={async () => {
+            try {
+              await api.post('/export/planner', cart)
+            } catch (err: any) {
+              alert('导出失败: ' + (err.response?.data || err.message))
+            }
           }}
           disabled={cartKeys.length === 0}
           className="flex-1 py-3 rounded-xl bg-zinc-800 text-zinc-300 text-xs font-black uppercase tracking-widest hover:bg-zinc-700 transition-all disabled:opacity-30"
