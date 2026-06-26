@@ -64,6 +64,8 @@ async fn main() {
         }
     });
 
+    let state_for_wry = state.clone();
+
     // Create router
     let app = api::router::create_router(state).fallback(serve_frontend);
 
@@ -84,7 +86,21 @@ async fn main() {
         .build(&event_loop)
         .unwrap();
 
-    let builder = WebViewBuilder::new().with_url(format!("http://127.0.0.1:{port}"));
+    let builder = WebViewBuilder::new()
+        .with_url(format!("http://127.0.0.1:{port}"))
+        .with_new_window_req_handler(move |url, _features| {
+            let mut final_url = url;
+            if final_url.contains("/api/syllabus/")
+                && let Some(entry) = state_for_wry.session_store.iter().next()
+            {
+                let sep = if final_url.contains('?') { "&" } else { "?" };
+                final_url = format!("{}{}token={}", final_url, sep, entry.key());
+            }
+            if let Err(e) = webbrowser::open(&final_url) {
+                tracing::warn!("Failed to open browser: {}", e);
+            }
+            wry::NewWindowResponse::Deny
+        });
 
     #[cfg(not(target_os = "linux"))]
     let _webview = builder.build(&window).unwrap();

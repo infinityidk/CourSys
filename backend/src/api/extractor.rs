@@ -19,10 +19,15 @@ impl FromRequestParts<AppState> for AuthSession {
         state: &AppState,
     ) -> Result<Self, Self::Rejection> {
         let jar = CookieJar::from_headers(&parts.headers);
-        let token = jar
-            .get("token")
-            .map(|c| c.value().to_string())
-            .ok_or(StatusCode::UNAUTHORIZED)?;
+        let mut token = jar.get("token").map(|c| c.value().to_string());
+
+        if token.is_none()
+            && let Some(query) = parts.uri.query()
+            && let Some(t) = query.split('&').find_map(|p| p.strip_prefix("token="))
+        {
+            token = Some(t.to_string());
+        }
+        let token = token.ok_or(StatusCode::UNAUTHORIZED)?;
 
         let session = crate::services::session_manager::get_session(state, &token)
             .map_err(|_| StatusCode::UNAUTHORIZED)?;
