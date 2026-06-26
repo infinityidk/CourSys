@@ -10,6 +10,7 @@ interface AppState {
     // App state
     tab: string
     semester: string
+    plannerSemester: string | null
     user: UserInfoResponse | null
 
     // Planner
@@ -22,8 +23,10 @@ interface AppState {
     // Setters
     setTab: (t: string) => void
     setSemester: (s: string) => void
+    setPlannerSemester: (s: string | null) => void
     setUser: (u: UserInfoResponse) => void
     setModals: (m: { blocked: boolean; result: boolean }) => void
+    clearPlanner: () => void
 
     // Cart actions
     addToGroup: (courseCode: string, courseName: string, groupId: string | null, opts: CartOption[]) => void
@@ -42,6 +45,7 @@ interface AppState {
 export const useStore = create<AppState>((set) => ({
     tab: 'home',
     semester: '',
+    plannerSemester: null,
     user: null,
     cart: {},
     blocked: [],
@@ -51,10 +55,18 @@ export const useStore = create<AppState>((set) => ({
 
     setTab: (t) => { set({ tab: t }); localStorage.setItem('coursys_tab', t) },
     setSemester: (s) => set({ semester: s }),
+    setPlannerSemester: (s) => set({ plannerSemester: s }),
     setUser: (u) => set({ user: u }),
     setModals: (m) => set({ modals: m }),
     setValidIds: (ids) => set({ validIds: ids }),
     setSolutions: (sols) => set({ solutions: sols }),
+
+    clearPlanner: () => set({
+        cart: {},
+        validIds: new Set(),
+        solutions: [],
+        plannerSemester: null
+    }),
 
     addToGroup: (code, name, groupId, opts) => set(s => {
         const c = { ...s.cart }

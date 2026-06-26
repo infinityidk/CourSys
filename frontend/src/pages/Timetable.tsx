@@ -10,8 +10,8 @@ import { createPortal } from 'react-dom'
 const DAYS = ['一', '二', '三', '四', '五', '六', '日']
 
 export default function Timetable() {
-  const { semester: globalSem, user } = useStore()
-  const [selectedSem, setSelectedSem] = useState(globalSem)
+  const { semester: globalSem, plannerSemester, user } = useStore()
+  const [selectedSem, setSelectedSem] = useState(plannerSemester || globalSem)
   const qc = useQueryClient()
   const [filter, setFilter] = useState('all')
 

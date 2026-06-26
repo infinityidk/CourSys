@@ -18,10 +18,11 @@ const COLORS = [
 ]
 
 export default function SolutionModal({ onClose }: { onClose: () => void }) {
-  const { solutions, cart, semester } = useStore()
+  const { solutions, cart, plannerSemester, semester: globalSem } = useStore()
   const [idx, setIdx] = useState(0)
   const [week, setWeek] = useState(1)
 
+  const semToShow = plannerSemester || globalSem;
   const exportRef = useRef<HTMLDivElement>(null)
   const gridRef = useRef<HTMLDivElement>(null)
 
@@ -85,7 +86,7 @@ export default function SolutionModal({ onClose }: { onClose: () => void }) {
         <div className="flex items-center gap-6">
           <div className="flex flex-col justify-center">
             <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">学期</span>
-            <span className="text-lg font-mono font-bold text-white">{formatSemester(semester)}</span>
+            <span className="text-lg font-mono font-bold text-white">{formatSemester(semToShow)}</span>
           </div>
           <div className="h-8 w-px bg-zinc-800"></div>
           <div className="flex flex-col justify-center">

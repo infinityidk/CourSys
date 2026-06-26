@@ -419,13 +419,14 @@ const VirtualMasonry = memo(({ data, resetKey, cart, validIds, solutions, select
 })
 
 export default function Catalog({ searchTerm, showFilters }: { searchTerm: string, showFilters: boolean }) {
-  const { semester: globalSem, cart, validIds, solutions, blocked, user, setValidIds, setSolutions } = useStore()
-  const [catSemester, setCatSemester] = useState(globalSem)
+  const { semester: globalSem, plannerSemester,
+    cart, validIds, solutions, blocked, user, setValidIds, setSolutions, setPlannerSemester, clearPlanner } = useStore()
   const semesterOptions = useMemo(() => (globalSem ? getPreviousSemesters(globalSem, 4) : []), [globalSem])
   const worker = useRef<Worker | null>(null)
   const qc = useQueryClient()
 
   // Filters
+  const activeSem = plannerSemester || globalSem;
   const [hideCompleted, setHideCompleted] = useState(false)
   const [hidePrereqNotMet, setHidePrereqNotMet] = useState(false)
   const [hideForbidden, setHideForbidden] = useState(false)
@@ -439,12 +440,12 @@ export default function Catalog({ searchTerm, showFilters }: { searchTerm: strin
   const [selPeriods, setSelPeriods] = useState<string[]>([])
 
   const { data } = useQuery<Course[]>({
-    queryKey: ['catalog', catSemester],
+    queryKey: ['catalog', activeSem],
     queryFn: async () => {
-      const res = await api.get(`/catalog?semester=${catSemester}`)
+      const res = await api.get(`/catalog?semester=${activeSem}`)
       return Array.isArray(res.data) ? res.data : Object.values(res.data)
     },
-    enabled: !!catSemester
+    enabled: !!activeSem
   })
 
   useEffect(() => {
@@ -474,7 +475,7 @@ export default function Catalog({ searchTerm, showFilters }: { searchTerm: strin
 
   const updateMut = useMutation({
     mutationFn: (code: string) => api.post('/update', { code }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['catalog', catSemester] })
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['catalog', activeSem] })
   })
 
   const gradesData = (() => {
@@ -563,8 +564,20 @@ export default function Catalog({ searchTerm, showFilters }: { searchTerm: strin
   const semesterPortal = createPortal(
     <div className="relative">
       <select
-        value={catSemester}
-        onChange={(e) => setCatSemester(e.target.value)}
+        value={activeSem}
+        onChange={(e) => {
+          const newSem = e.target.value;
+          if (newSem !== activeSem) {
+            if (Object.keys(cart).length > 0) {
+              const confirmClear = window.confirm("切换学期将清空当前排课器中的所有课程组，是否继续？");
+              if (!confirmClear) {
+                return;
+              }
+              clearPlanner();
+            }
+            setPlannerSemester(newSem);
+          }
+        }}
         disabled={semesterOptions.length === 0}
         className="appearance-none bg-zinc-900 border border-zinc-800 rounded-2xl pl-6 pr-10 py-3 text-xs font-black text-white hover:text-zinc-300 outline-none focus:border-blue-500 disabled:opacity-50 transition-all cursor-pointer"
       >
@@ -666,7 +679,7 @@ export default function Catalog({ searchTerm, showFilters }: { searchTerm: strin
 
         <div className="flex-1 min-h-0 overflow-hidden flex gap-6">
           <div className="flex-1 min-w-0 h-full">
-            <VirtualMasonry data={filteredData} resetKey={catSemester} cart={cart} validIds={validIds} solutions={solutions} selectMut={selectMut} updateMut={updateMut} passedCodes={passedCodes} />
+            <VirtualMasonry data={filteredData} resetKey={activeSem} cart={cart} validIds={validIds} solutions={solutions} selectMut={selectMut} updateMut={updateMut} passedCodes={passedCodes} />
           </div>
           <div className="w-80 h-full shrink-0">
             <PlannerSidebar />
