@@ -28,7 +28,7 @@ jobs:
 
       - name: Update Cargo.lock
         if: steps.release.outputs.pr
-        uses: nick-fields/retry@4
+        uses: nick-fields/retry@v4
         with:
           timeout_minutes: 5
           max_attempts: 3
