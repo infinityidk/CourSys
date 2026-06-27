@@ -8,11 +8,16 @@ permissions:
   contents: write
   issues: write
   pull-requests: write
+  actions: write
 
 jobs:
   release-please:
     runs-on: ubuntu-latest
     environment: Release
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
+      version: ${{ steps.release.outputs.version }}
     steps:
       - uses: googleapis/release-please-action@v5
         id: release
@@ -43,3 +48,92 @@ jobs:
           git add Cargo.lock
           VERSION=$(cargo metadata --format-version=1 --no-deps | jq -r '.packages[] | select(.name == "backend") | .version')
           git diff --quiet && git diff --staged --quiet || (git commit -m "chore: update Cargo.lock for v$VERSION" && git push)
+
+  frontend:
+    needs: release-please
+    if: ${{ needs.release-please.outputs.release_created }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+        with: { version: 11 }
+      - uses: actions/setup-node@v6
+        with: { node-version: 26, cache: 'pnpm', cache-dependency-path: frontend/pnpm-lock.yaml }
+      - run: cd frontend && pnpm install && pnpm build
+      - uses: actions/upload-artifact@v7
+        with:
+          name: frontend-dist
+          path: frontend/dist
+          retention-days: 1
+          if-no-files-found: error
+
+  build:
+    needs: [release-please, frontend]
+    if: ${{ needs.release-please.outputs.release_created }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            os_short: linux
+            binary_name: CourSys
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            os_short: macos
+            binary_name: CourSys
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            os_short: windows
+            binary_name: CourSys.exe
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install Linux dependencies
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev
+      - uses: dtolnay/rust-toolchain@stable
+        with: { targets: '${{ matrix.target }}' }
+      - uses: actions/download-artifact@v8
+        with: { name: frontend-dist, path: frontend/dist }
+      - uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: "rust-release-cache"
+      - run: cargo build --release --target ${{ matrix.target }}
+      - name: Package
+        shell: bash
+        run: |
+          ver="${{ needs.release-please.outputs.version }}"
+          os="${{ matrix.os_short }}"
+          dir="CourSys-${ver}-${os}"
+          mkdir -p "$dir"
+          cp "target/${{ matrix.target }}/release/${{ matrix.binary_name }}" "$dir/"
+          cp -r backend/data "$dir/"
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            zipname="CourSys-${ver}-${os}.zip"
+            7z a -tzip "$zipname" "$dir"
+          else
+            tarname="CourSys-${ver}-${os}.tar.gz"
+            tar -czf "$tarname" "$dir"
+          fi
+      - uses: actions/upload-artifact@v7
+        with:
+          name: CourSys-${{ matrix.os_short }}
+          path: CourSys-${{ needs.release-please.outputs.version }}-${{ matrix.os_short }}.*
+          retention-days: 1
+          if-no-files-found: error
+
+  publish:
+    needs: [release-please, build]
+    if: ${{ needs.release-please.outputs.release_created }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with: { path: artifacts }
+      - uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ needs.release-please.outputs.tag_name }}
+          files: artifacts/CourSys-*/*
