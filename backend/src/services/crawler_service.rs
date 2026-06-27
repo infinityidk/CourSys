@@ -1,4 +1,6 @@
-use crate::models::grade::{GradeItem, GradeResponse};
+use std::collections::BTreeMap;
+
+use crate::models::grade::{GradeItem, GradeResponse, RawGpaResponse, SeasonGpa, YearGpa};
 use crate::models::user::{UserInfoRequest, UserInfoResponse};
 use crate::state::AppState;
 use crate::utils::tis::{send_request, validate_tis_response};
@@ -87,4 +89,44 @@ pub async fn fetch_grades(
         });
     }
     Ok(res)
+}
+
+pub async fn fetch_gpa_summary(
+    state: &AppState,
+    cookie: &str,
+    token: &str,
+) -> Result<(f64, String, Vec<YearGpa>), anyhow::Error> {
+    let raw: RawGpaResponse = send_request(
+        state
+            .http_client
+            .post("https://tis.sustech.edu.cn/cjgl/xscjgl/xsgrcjcx/queryXnAndXqXfj")
+            .header(reqwest::header::COOKIE, cookie),
+        token,
+        state,
+    )
+    .await?;
+    let mut map: BTreeMap<String, (f64, Vec<SeasonGpa>)> = BTreeMap::new();
+    for s in raw.semesters {
+        let season_name = if s.full_name.len() > 4 {
+            s.full_name[4..].to_string()
+        } else {
+            s.full_name
+        };
+        map.entry(s.year)
+            .or_insert((s.year_gpa, vec![]))
+            .1
+            .push(SeasonGpa {
+                season_name,
+                season_gpa: s.season_gpa,
+            });
+    }
+    let years: Vec<YearGpa> = map
+        .into_iter()
+        .map(|(year, (year_gpa, seasons))| YearGpa {
+            year,
+            year_gpa,
+            seasons,
+        })
+        .collect();
+    Ok((raw.overall.gpa, raw.overall.ranking, years))
 }

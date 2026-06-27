@@ -48,3 +48,55 @@ pub struct GradeResponse {
     pub ranking: Option<String>,
     pub students: String,
 }
+
+#[derive(Debug, Deserialize)]
+pub struct RawGpaOverall {
+    #[serde(rename = "PJXFJ")]
+    pub gpa: f64,
+    #[serde(rename = "PM")]
+    pub ranking: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct RawGpaSemester {
+    #[serde(rename = "XN")]
+    pub year: String,
+    #[serde(rename = "XNXFJ")]
+    pub year_gpa: f64,
+    #[serde(rename = "XNXQ")]
+    pub full_name: String,
+    #[serde(rename = "XQXFJ")]
+    pub season_gpa: f64,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct RawGpaResponse {
+    #[serde(rename = "xfjandpm")]
+    pub overall: RawGpaOverall,
+    #[serde(rename = "xnanxqxfj")]
+    pub semesters: Vec<RawGpaSemester>,
+}
+
+#[derive(Debug, Serialize, TS)]
+#[ts(export, export_to = "../../frontend/src/bindings/SeasonGpa.ts")]
+pub struct SeasonGpa {
+    pub season_name: String,
+    pub season_gpa: f64,
+}
+
+#[derive(Debug, Serialize, TS)]
+#[ts(export, export_to = "../../frontend/src/bindings/YearGpa.ts")]
+pub struct YearGpa {
+    pub year: String,
+    pub year_gpa: f64,
+    pub seasons: Vec<SeasonGpa>,
+}
+
+#[derive(Debug, Serialize, TS)]
+#[ts(export, export_to = "../../frontend/src/bindings/GradesResponse.ts")]
+pub struct GradesResponse {
+    pub gpa: f64,
+    pub ranking: String,
+    pub years: Vec<YearGpa>,
+    pub grades: Vec<GradeResponse>,
+}
