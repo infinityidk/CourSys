@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.2.1](https://github.com/infinityidk/CourSys/compare/v1.2.0...v1.2.1) (2026-06-27)
+
+
+### Bug Fixes
+
+* syllabus for past semesters ([984dc44](https://github.com/infinityidk/CourSys/commit/984dc447b4295ba16b6c5ea93b40f63393627f16))
+* update search placeholder ([abd6a2a](https://github.com/infinityidk/CourSys/commit/abd6a2abe1ebfa5f1f7ca4d5b440d08f63c9f94b))
+
 ## [1.2.0](https://github.com/infinityidk/CourSys/compare/v1.1.1...v1.2.0) (2026-06-27)
 
 
