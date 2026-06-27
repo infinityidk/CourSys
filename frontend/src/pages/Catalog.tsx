@@ -211,6 +211,8 @@ function isGroupDead(cls: Class, g: Group, cart: any, solutions: any[], validIds
 const CourseCard = memo(({ c, cart, validIds, solutions, selectMut, updateMut, passedCodes }: {
   c: Course, cart: any, validIds: Set<string>, solutions: any[], selectMut: any, updateMut: any, passedCodes: Set<string>
 }) => {
+  const { semester: globalSem, plannerSemester } = useStore()
+  const activeSem = plannerSemester || globalSem
   const prereqMet = c.dependencies?.length ? hasPrereqsMet(c.dependencies, passedCodes) : undefined
 
   return (
@@ -244,7 +246,7 @@ const CourseCard = memo(({ c, cart, validIds, solutions, selectMut, updateMut, p
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="w-3 h-3"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
               <span className="group-hover/link:underline">NCES</span>
             </a>
-            <a href={`/api/syllabus/${c.code}`} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-zinc-500 hover:text-blue-400 transition-colors group/link">
+            <a href={`/api/syllabus/${c.code}?semester=${activeSem}`} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-zinc-500 hover:text-blue-400 transition-colors group/link">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="w-3 h-3"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
               <span className="group-hover/link:underline">大纲</span>
             </a>

@@ -1,10 +1,11 @@
 use crate::api::error::AppError;
 use axum::{
     body::Body,
-    extract::{Path, State},
+    extract::{Path, Query, State},
     http::{HeaderMap, HeaderValue, StatusCode, header},
     response::IntoResponse,
 };
+use serde::Deserialize;
 use tracing::error;
 
 use crate::{
@@ -13,12 +14,20 @@ use crate::{
     state::AppState,
 };
 
+#[derive(Debug, Deserialize)]
+pub struct SyllabusParams {
+    pub semester: Option<String>,
+}
+
 pub async fn syllabus_handler(
     State(state): State<AppState>,
     auth: AuthSession,
     Path(code): Path<String>,
+    Query(params): Query<SyllabusParams>,
 ) -> Result<impl IntoResponse, AppError> {
-    let semester = get_current_semester(&state, &auth.session.tis_cookie, &auth.token).await?;
+    let current_semester =
+        get_current_semester(&state, &auth.session.tis_cookie, &auth.token).await?;
+    let semester = params.semester.unwrap_or(current_semester);
     let _ = get_catalog(&state, &auth.session.tis_cookie, &auth.token, &semester).await?;
 
     let course_id = {
