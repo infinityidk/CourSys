@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.2.0](https://github.com/infinityidk/CourSys/compare/v1.1.1...v1.2.0) (2026-06-27)
+
+
+### Features
+
+* add GPA and ranking summary ([35e6321](https://github.com/infinityidk/CourSys/commit/35e63218c8b62b36cea020b5f4419ef13eb6b486))
+* implement update checker ([9f308ec](https://github.com/infinityidk/CourSys/commit/9f308ec367b7839bbbb384bff3fcb18f3abde923))
+
+
+### Bug Fixes
+
+* hide console window on Windows release builds ([7d8df07](https://github.com/infinityidk/CourSys/commit/7d8df0752cf08ab3c80b3fda81bdd1fea1b37dd8))
+
 ## [1.1.1](https://github.com/infinityidk/CourSys/compare/v1.1.0...v1.1.1) (2026-06-26)
 
 
