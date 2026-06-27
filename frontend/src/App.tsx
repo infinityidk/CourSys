@@ -7,6 +7,7 @@ import Home from './pages/Home'
 import Grades from './pages/Grades'
 import Timetable from './pages/Timetable'
 import Catalog from './pages/Catalog'
+import UpdateBanner from './UpdateBanner'
 
 const qc = new QueryClient({ defaultOptions: { queries: { retry: false, refetchOnWindowFocus: false } } })
 
@@ -71,6 +72,7 @@ function AppShell() {
   // Main App
   return (
     <div className="h-screen bg-black text-zinc-300 p-6 font-sans selection:bg-blue-500/30 flex flex-col overflow-hidden">
+      <UpdateBanner />
       <header className="flex-none flex flex-col xl:flex-row justify-between items-end xl:items-center mb-6 gap-6">
         {/* Left: Logo */}
         <div className="shrink-0">
