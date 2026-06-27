@@ -86,7 +86,7 @@ function AppShell() {
               <input
                 type="text"
                 className="w-full pl-12 pr-4 py-3 bg-zinc-900 border border-zinc-800 rounded-2xl text-white placeholder-zinc-600 hover:border-zinc-700 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/50 transition-all font-bold text-xs"
-                placeholder="搜索课程代码、名称或教师 (Ctrl+F)"
+                placeholder="搜索课程代码、名称、教师、备注（支持拼音首字母、全拼）"
                 value={globalSearch}
                 onChange={(e) => setGlobalSearch(e.target.value)}
                 id="global-search-input"
