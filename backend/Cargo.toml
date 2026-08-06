@@ -8,31 +8,30 @@ name = "CourSys"
 path = "src/main.rs"
 
 [dependencies]
-anyhow = "1.0.102"
+anyhow = "1.0.104"
 async-recursion = "1.1.1"
 axum = "0.8.9"
 axum-extra = { version = "0.12.6", features = ["cookie"] }
-base64 = "0.23.0"
+base64 = "0.23.1"
 brotli = "8.0.4"
-bytes = "1.12.0"
+bytes = "1.12.1"
 chrono = "0.4.45"
 dashmap = "6.2.1"
-futures = "0.3.32"
+futures = "0.3.33"
 itertools = "0.15.0"
 mime_guess = "2.0.5"
-regex = "1.12.4"
+regex = "1.13.1"
 reqwest = { version = "0.13.4", features = ["json", "cookies", "form", "stream"] }
 rfd = "0.17.2"
-rust-embed = "8.11.0"
-serde = { version = "1.0.228", features = ["derive"] }
-serde_json = "1.0.150"
-serde_path_to_error = "0.1.20"
-tao = "0.35.3"
-tokio = { version = "1.52.3", features = ["macros", "rt-multi-thread", "net", "time", "sync", "fs"] }
+rust-embed = "8.12.0"
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.151"
+tao = "0.36.0"
+tokio = { version = "1.53.1", features = ["macros", "rt-multi-thread", "net", "time", "sync", "fs"] }
 tower-http = { version = "0.7.0", features = ["compression-full", "timeout"] }
 tracing = "0.1.44"
 tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
 ts-rs = "12.0.1"
-uuid = { version = "1.23.3", features = ["v4"] }
-webbrowser = "1.2.1"
-wry = "0.55.1"
+uuid = { version = "1.24.0", features = ["v4"] }
+webbrowser = "1.2.4"
+wry = "0.56.0"
