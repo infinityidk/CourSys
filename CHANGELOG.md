@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.2.2](https://github.com/infinityidk/CourSys/compare/v1.2.1...v1.2.2) (2026-08-09)
+
+
+### Dependencies
+
+* **backend:** update dependencies ([bf7dd78](https://github.com/infinityidk/CourSys/commit/bf7dd7815a7f30af0c06ac1495ebd6d88b9bb80d))
+* **frontend:** update dependencies ([e5f5d70](https://github.com/infinityidk/CourSys/commit/e5f5d7000e0961033359a3a08d1c75e66da528e8))
+
 ## [1.2.1](https://github.com/infinityidk/CourSys/compare/v1.2.0...v1.2.1) (2026-06-27)
 
 
