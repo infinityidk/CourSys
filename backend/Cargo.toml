@@ -13,7 +13,7 @@ async-recursion = "1.1.1"
 axum = "0.8.9"
 axum-extra = { version = "0.12.6", features = ["cookie"] }
 base64 = "0.23.1"
-brotli = "8.0.4"
+brotli = "9.1.1"
 bytes = "1.12.1"
 chrono = "0.4.45"
 dashmap = "6.2.1"
@@ -26,7 +26,7 @@ rfd = "0.17.2"
 rust-embed = "8.12.0"
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.151"
-tao = "0.36.0"
+tao = "0.37.2"
 tokio = { version = "1.53.1", features = ["macros", "rt-multi-thread", "net", "time", "sync", "fs"] }
 tower-http = { version = "0.7.0", features = ["compression-full", "timeout"] }
 tracing = "0.1.44"
@@ -34,4 +34,4 @@ tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
 ts-rs = "12.0.1"
 uuid = { version = "1.24.0", features = ["v4"] }
 webbrowser = "1.2.4"
-wry = "0.56.0"
+wry = "0.57.1"
